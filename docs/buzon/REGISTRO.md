@@ -70,6 +70,15 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Pruebas:** navegador simulado con los 3 planos y la guía; sin errores de JavaScript.
 - **Pendiente:** revisión visual en escritorio y dos celulares (checklist de issue #1). Rendimiento en equipos lentos: si se traba, bajar la calidad de sombras.
 
+## 24/10/2026, 13:50 ART — Entrega de Cande (con Claude): muebles, parquet y ciudad reales
+
+- **Objetivo:** subir la calidad visual (pedido de Cande: "baja calidad, que parezca un departamento real alquilable").
+- **Estado:** publicado; lógica probada en navegador simulado; la carga de modelos solo se puede verificar en un navegador real.
+- **Cambios:** `public/assets/` con modelos glTF reales (sillón GlamVelvetSofa de Wayfair, sillón individual SheenChair, planta, florero), textura de parquet real y panorama HDR de ciudad real que ilumina la escena y se ve por las ventanas. Texturas reducidas a 512 px: 9 MB en total. Si algún recurso no carga, la app usa los muebles armados con formas (no se rompe). El recorrido arranca con encuadre de foto inmobiliaria (esquina, 1,5 m, diagonal).
+- **Servidor:** tipos para .glb/.jpg/.png/.hdr y caché de 1 hora en `/assets/` y `/vendor/` (antes todo era no-store: el celular bajaba 9 MB en cada visita).
+- **Licencias:** ver `public/assets/CREDITOS.txt` (CC BY 4.0 y CC0). El sillón y la planta piden atribución: hay que mencionarlos en la web o en el README.
+- **Pendiente:** revisar en celulares reales la carga y la fluidez; si va lento, sacar la planta (3 MB) o el sillón individual (3 MB).
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

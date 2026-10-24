@@ -8,7 +8,7 @@ const publicRoot = path.join(root, 'public');
 const port = Number(process.env.PORT || 8797);
 const base = '/cauce';
 const revision = await readFile(path.join(root, '.revision'), 'utf8').then(s => s.trim()).catch(() => 'local');
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.glb': 'model/gltf-binary', '.jpg': 'image/jpeg', '.png': 'image/png', '.hdr': 'application/octet-stream' };
 
 // Lectura de planos con IA. La clave vive solo en el VPS (/etc/cauce), nunca en el repositorio.
 const apiKey = process.env.ANTHROPIC_API_KEY || '';
@@ -119,6 +119,7 @@ const server = http.createServer(async (req, res) => {
     const info = await stat(target);
     if (!info.isFile()) { res.writeHead(404); res.end(); return; }
     const body = await readFile(target);
+    if (/^(assets|vendor)\//.test(relative)) res.setHeader('Cache-Control', 'public, max-age=3600');
     res.writeHead(200, { 'Content-Type': types[path.extname(target)] || 'application/octet-stream', 'Content-Length': body.length });
     res.end(req.method === 'HEAD' ? undefined : body);
   } catch (error) {

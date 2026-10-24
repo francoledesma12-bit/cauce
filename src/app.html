@@ -227,6 +227,8 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
 <script>
 (() => {
 "use strict";
@@ -481,6 +483,48 @@ function aoPiso(a){
 
 let model = null, plan = null, floors = [], bounds = null, ceilings = null;
 
+/* ===================== Recursos reales (modelos, parquet y panorama de ciudad) ===================== */
+const REAL = {};
+let pmremGen = null; try{ pmremGen = new THREE.PMREMGenerator(renderer); }catch(_){}
+function prepararModelo(gltf){
+  const root = gltf.scene;
+  const quitar = []; root.traverse(o => { if (o.isLight) quitar.push(o); });
+  quitar.forEach(o => o.parent && o.parent.remove(o));
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    o.castShadow = true; o.receiveShadow = true;
+    const fix = m => { m = m.clone(); m.clippingPlanes = clip; if (m.transparent) m.depthWrite = false; return m; };
+    o.material = Array.isArray(o.material) ? o.material.map(fix) : fix(o.material);
+  });
+  const box3 = new THREE.Box3().setFromObject(root), size = box3.getSize(new THREE.Vector3()), c = box3.getCenter(new THREE.Vector3());
+  const wrap = new THREE.Group(); root.position.set(-c.x, -box3.min.y, -c.z); wrap.add(root);
+  return {obj:wrap, size};
+}
+// clona un modelo real escalado a un ancho (o alto) objetivo
+function real(nombre, {ancho, alto} = {}){
+  const r = REAL[nombre]; if (!r) return null;
+  const k = ancho ? ancho / r.size.x : alto ? alto / r.size.y : 1;
+  const o = r.obj.clone(true); o.scale.setScalar(k);
+  return {obj:o, d:r.size.z*k, w:r.size.x*k, h:r.size.y*k};
+}
+function cargarRecursos(){
+  const pend = [];
+  if (THREE.GLTFLoader){
+    const gl = new THREE.GLTFLoader();
+    [["sofa","sofa.glb"], ["sillon","sillon.glb"], ["planta","planta.glb"], ["florero","florero.glb"]].forEach(([k, f]) =>
+      pend.push(new Promise(ok => gl.load("./assets/" + f, g => { try{ REAL[k] = prepararModelo(g); }catch(_){} ok(); }, undefined, () => ok()))));
+  }
+  const tl = new THREE.TextureLoader();
+  pend.push(new Promise(ok => tl.load("./assets/parquet.jpg", t => { t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); REAL.parquet = t; ok(); }, undefined, () => ok())));
+  pend.push(new Promise(ok => tl.load("./assets/parquet-rugosidad.jpg", t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; REAL.parquetR = t; ok(); }, undefined, () => ok())));
+  if (THREE.RGBELoader){
+    pend.push(new Promise(ok => new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load("./assets/ciudad.hdr", t => {
+      REAL.ciudad = t; try{ if (pmremGen){ REAL.ciudadEnv = pmremGen.fromEquirectangular(t).texture; scene.environment = REAL.ciudadEnv; } }catch(_){}
+      ok(); }, undefined, () => ok())));
+  }
+  Promise.all(pend).then(() => { if (plan){ const cam = camera.position.clone(), q = camera.quaternion.clone(); construir(plan); camera.position.copy(cam); camera.quaternion.copy(q); } });
+}
+
 /* ===================== Muebles ===================== */
 // Elige la pared más larga sin puertas y amuebla contra ella, según el tipo de ambiente.
 function paredes(a, ab){
@@ -500,7 +544,8 @@ function paredes(a, ab){
 function put(a, w, geo, mat, u, s, y, group, d){
   // w = lado de pared, u = desplazamiento sobre la pared, s = distancia a la pared, d = profundidad del objeto
   const cx = a.x + a.ancho/2, cz = a.y + a.largo/2, off = T/2 + s + d/2;
-  const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true;
+  const m = geo && geo.isObject3D ? geo : new THREE.Mesh(geo, mat);
+  if (m.isMesh){ m.castShadow = true; m.receiveShadow = true; }
   if (w.side === "top"){ m.position.set(cx + u, y, a.y + off); }
   else if (w.side === "bottom"){ m.position.set(cx - u, y, a.y + a.largo - off); m.rotation.y = Math.PI; }
   else if (w.side === "left"){ m.position.set(a.x + off, y, cz - u); m.rotation.y = Math.PI/2; }
@@ -515,6 +560,8 @@ function amueblar(a, ab, g){
   const P = (geo, mat, u, s, y, d, sombra = true) => { const m = put(a, w, geo, mat, u, s, y, g, d); if (!sombra) m.castShadow = false; return m; };
   const blob = (ww, dd, u, s) => { const m = P(new THREE.PlaneGeometry(ww*1.25, dd*1.25), matBlob, u, s - dd*0.125, 0.006, dd*1.25, false); m.rotation.order = "YXZ"; m.rotation.x = -Math.PI/2; m.receiveShadow = false; m.renderOrder = 2; };
   const planta = (u, s, esc = 1) => {
+    const rp = real("planta", {alto: 1.15*esc});
+    if (rp){ P(rp.obj, null, u, s, 0, rp.d); blob(rp.w*0.7, rp.d*0.7, u, s); return; }
     P(CYL(0.17*esc, 0.13*esc, 0.42*esc), FM.maceta, u, s, 0.21*esc, 0.34*esc);
     [[0,0.78,0,0.26],[0.12,0.92,0.06,0.2],[-0.1,0.95,-0.05,0.19],[0.03,1.12,0.02,0.16],[-0.08,0.7,0.1,0.18]].forEach(([dx,y,dz,r], k) =>
       P(new THREE.SphereGeometry(r*esc, 18, 14), k % 2 ? FM.planta2 : FM.planta, u + dx*esc, s + dz*esc + 0.04, y*esc, 0.34*esc));
@@ -543,6 +590,8 @@ function amueblar(a, ab, g){
         lampara(u, 0.1, 0.5);
       });
       if (lados[1] && lados[1].along >= 2.2 && !lados[1].blocked) planta(0, 0.1, 0.9);
+      { const rc = real("sillon", {ancho: 0.78});
+        if (rc && depth >= 3.0 && along >= bw + 1.9){ const ch = P(rc.obj, null, -(along/2 - 0.55), L - 0.2, 0, rc.d); ch.rotation.y += 0.5; blob(0.78, 0.78, -(along/2 - 0.55), L - 0.2); } }
       break;
     }
     case "estar": case "comedor": {
@@ -550,7 +599,15 @@ function amueblar(a, ab, g){
       const sw = Math.min(2.3, along - 0.7);
       if (a.tipo === "estar"){
         const rug = P(R(Math.min(2.8, sw + 0.6), 0.012, 1.9, 0.005), FM.alfombra, 0, 0.5, 0.006, 1.9, false); rug.receiveShadow = true;
-        // sillón: base, almohadones de asiento y respaldo, apoyabrazos
+        // sillón: modelo real si está cargado; si no, uno armado con formas
+        const rs = real("sofa", {ancho: Math.min(sw, 2.25)});
+        if (rs){
+          P(rs.obj, null, 0, 0.03, 0, rs.d); blob(rs.w, rs.d, 0, 0.03);
+          const rc = real("sillon", {ancho: 0.8});
+          if (rc && depth >= 3.0 && along >= rs.w + 1.4){
+            const ch = P(rc.obj, null, rs.w/2 + 0.65, 0.9, 0, rc.d); ch.rotation.y += -0.7; blob(0.8, 0.8, rs.w/2 + 0.65, 0.9);
+          }
+        } else {
         const arm = 0.16, n = sw > 1.9 ? 3 : 2, cw = (sw - arm*2)/n;
         P(R(sw, 0.2, 0.94, 0.03), FM.tela, 0, 0.02, 0.17, 0.94);
         [-1, 1].forEach(k => P(R(arm, 0.6, 0.94, 0.05), FM.tela, k*(sw/2 - arm/2), 0.02, 0.36, 0.94));
@@ -563,11 +620,13 @@ function amueblar(a, ab, g){
         P(R(0.42, 0.4, 0.13, 0.07), FM.acentoSalvia, sw/2 - arm - 0.3, 0.25, 0.63, 0.13);
         [-1, 1].forEach(k => [0.06, 0.86].forEach(sv => P(CYL(0.02, 0.015, 0.08, 10), FM.maderaOsc, k*(sw/2 - 0.08), 0.02 + sv, 0.04, 0.04)));
         blob(sw, 0.94, 0, 0.02);
+        }
         if (depth >= 2.6){
           P(CYL(0.42, 0.42, 0.035, 48), FM.roble, 0, 1.25, 0.4, 0.84);
           P(CYL(0.08, 0.14, 0.37, 24), FM.maderaOsc, 0, 1.25 + 0.34, 0.2, 0.16);
           blob(0.84, 0.84, 0, 1.25);
           P(R(0.32, 0.04, 0.22, 0.01), FM.telaOsc, 0.12, 1.45, 0.43, 0.22);   // libro
+          const fl = real("florero", {alto: 0.32}); if (fl){ const o = P(fl.obj, null, -0.12, 1.2, 0.0, fl.d); o.position.y = 0.418; }
         }
         if (along >= sw + 1.2){ const u = sw/2 + 0.35;
           P(CYL(0.13, 0.15, 0.03, 24), FM.negroMetal, u, 0.1, 0.015, 0.3);
@@ -593,6 +652,7 @@ function amueblar(a, ab, g){
           [[-0.19, 0.03], [0.19, 0.03], [-0.19, 0.39], [0.19, 0.39]].forEach(([du, ds]) => P(CYL(0.012, 0.012, 0.44, 8), FM.negroMetal, u + du, s + sv + ds, 0.22, 0.024));
         }));
         blob(1.9, 1.5, 0, s - 0.3);
+        { const fl = real("florero", {alto: 0.36}); if (fl){ const o = P(fl.obj, null, 0, s + 0.3, 0, fl.d); o.position.y = 0.77; } }
         P(CYL(0.005, 0.005, 0.6, 6), FM.negroMetal, 0, s + 0.43, H - 0.3, 0.01);
         P(new THREE.SphereGeometry(0.17, 32, 16, 0, Math.PI*2, 0, Math.PI/2), FM.pantalla, 0, s + 0.28, H - 0.6, 0.34);
       }
@@ -666,7 +726,13 @@ function construir(p){
     const tile = t.floor === "tile" ? 1.2 : t.floor === "deck" ? 1.6 : 2.6;
     tex.repeat.set(a.ancho / tile, a.largo / tile);
     const rough = t.floor === "wood" ? 0.42 : t.floor === "tile" ? 0.28 : 0.9;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(a.ancho, a.largo), new THREE.MeshStandardMaterial({map:tex, roughness:rough, envMapIntensity:0.8}));
+    let fm;
+    if (t.floor === "wood" && REAL.parquet){
+      const map = REAL.parquet.clone(); map.needsUpdate = true; map.repeat.set(a.ancho/1.6, a.largo/1.6);
+      const rm = REAL.parquetR ? REAL.parquetR.clone() : null; if (rm){ rm.needsUpdate = true; rm.repeat.copy(map.repeat); }
+      fm = new THREE.MeshStandardMaterial({map, roughnessMap:rm, roughness:rm ? 1 : 0.45, envMapIntensity:0.9});
+    } else fm = new THREE.MeshStandardMaterial({map:tex, roughness:rough, envMapIntensity:0.8});
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(a.ancho, a.largo), fm);
     m.rotation.x = -Math.PI/2; m.position.set(a.x + a.ancho/2, 0.001, a.y + a.largo/2);
     m.receiveShadow = true; m.userData.room = i; model.add(m); floors.push(m);
     if (!["balcon","patio"].includes(a.tipo)) model.add(aoPiso(a));
@@ -764,8 +830,11 @@ const skyTex = (() => {
 function construirEntorno(){
   if (entorno){ scene.remove(entorno); entorno.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
   entorno = new THREE.Group();
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(140, 32, 16), new THREE.MeshBasicMaterial({map:skyTex, side:THREE.BackSide, fog:false, toneMapped:false}));
-  sky.position.set(bounds.cx, 0, bounds.cy); entorno.add(sky);
+  const pano = REAL.ciudad;
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(140, 48, 24), new THREE.MeshBasicMaterial({map:pano || skyTex, side:THREE.BackSide, fog:false, toneMapped:!!pano}));
+  if (pano){ sky.scale.x = -1; sky.position.set(bounds.cx, -8, bounds.cy); } else sky.position.set(bounds.cx, 0, bounds.cy);
+  entorno.add(sky);
+  if (pano){ entorno.visible = mode === "recorrido"; scene.add(entorno); return; }   // con panorama real no hacen falta edificios dibujados
   // manzanas de Rosario alrededor: edificios bajos y medianos, deterministas
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const tonos = [0xd8d2c6, 0xc9c3b8, 0xe4dfd5, 0xbfc4c2, 0xd2c7b4];
@@ -1396,6 +1465,7 @@ const start = (location.hash || "").slice(1);
 const k0 = PRESETS[start] ? start : "montevideo";
 resize();
 cargar(PRESETS[k0], k0);
+cargarRecursos();
 requestAnimationFrame(frame);
 })();
 </script>

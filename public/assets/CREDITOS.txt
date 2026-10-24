@@ -1,0 +1,13 @@
+Créditos de los recursos 3D usados por Cauce
+
+Modelos (KhronosGroup/glTF-Sample-Assets), texturas reducidas a 512 px para la web:
+- sofa.glb — "GlamVelvetSofa", Eric Chadwick / Wayfair, LLC (2021). CC BY 4.0
+  https://creativecommons.org/licenses/by/4.0/
+- sillon.glb — "SheenChair", Eric Chadwick. CC0 1.0
+- planta.glb — "DiffuseTransmissionPlant", Eric Chadwick (CC BY 4.0) y Rico Cilliers (CC0 1.0),
+  © 2024 Darmstadt Graphics Group GmbH.
+- florero.glb — "GlassVaseFlowers", Eric Chadwick y Rico Cilliers. CC0 1.0
+
+Texturas y panorama (repositorio de ejemplos de three.js, r128):
+- parquet.jpg / parquet-rugosidad.jpg — "hardwood2".
+- ciudad.hdr — "pedestrian_overpass_1k", Poly Haven (CC0).
