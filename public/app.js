@@ -944,6 +944,7 @@ function renderPresets(){
 
 $("mMaqueta").onclick = () => { cerrarFotos(); mode !== "maqueta" && setMode("maqueta"); };
 $("mRecorrido").onclick = () => { cerrarFotos(); mode !== "recorrido" && setMode("recorrido"); };
+$("solBtn").onclick = () => { const b = $("sunbox"); b.hidden = !b.hidden; $("solBtn").setAttribute("aria-expanded", !b.hidden); };
 $("cut").onclick = () => {
   cutOn = !cutOn; cutTarget = cutOn ? 1.3 : 50;
   $("cut").textContent = cutOn ? "Ver paredes completas" : "Cortar paredes";
@@ -1160,6 +1161,7 @@ async function resumirMuestras(muestras, meta, capturar){
 let cam = null;
 document.body.append($("vlive"));   // fuera del panel, para que ocupe toda la pantalla
 $("vcam").onclick = async () => {
+  $("crear").open = true;
   $("vres").hidden = false; vstatus("");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ vstatus("Este navegador no deja usar la cámara desde la página. Usá «Elegir video».", "err"); return; }
   try{ cam = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1280}}, audio: false}); }

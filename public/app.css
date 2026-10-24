@@ -57,6 +57,15 @@ header.top{grid-column:1/-1;display:flex;align-items:center;gap:14px;
 aside.panel{background:var(--panel);border-right:1px solid var(--line);overflow:auto;
   padding-block:18px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:18px;display:flex;flex-direction:column;gap:22px;min-width:0}
 .step h2{font-family:var(--f-display);font-weight:600;font-size:16px;margin:0 0 4px;display:flex;align-items:baseline;gap:8px;text-wrap:balance}
+.crear{border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.crear summary{list-style:none;cursor:pointer;padding:12px 14px;display:grid;gap:2px;position:relative}
+.crear summary::-webkit-details-marker{display:none}
+.crear summary span{font-family:var(--f-display);font-weight:600;font-size:15px}
+.crear summary small{color:var(--muted);font-size:12.5px}
+.crear summary::after{content:"+";position:absolute;right:14px;top:12px;font-size:20px;color:var(--olive)}
+.crear[open] summary::after{content:"−"}
+.crear .sub{padding:4px 14px 14px;display:grid;gap:8px;border-top:1px solid var(--line)}
+.crear h3{font-size:13px;font-weight:600;margin:10px 0 0;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .step h2 .n{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-weight:500}
 .step p.help{margin:0 0 10px;color:var(--muted);font-size:13px}
 
@@ -212,6 +221,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 .stage.g-open .chips{right:360px;justify-content:flex-start;padding-left:max(14px,env(safe-area-inset-left,0px))}
 .stage.g-open .hint{left:calc((100% - 344px)/2)}
 .stage.g-open .title3d{bottom:88px}
+#solBtn{font-weight:600}
 .tools button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 10px;font-size:12.5px;cursor:pointer}
 .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;background:rgba(24,59,53,.86);color:#fff;font-size:12.5px;padding:6px 12px;border-radius:999px;pointer-events:none;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
 .chips{position:absolute;left:0;right:0;bottom:12px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding-inline:max(14px,env(safe-area-inset-left,0px))}
@@ -220,7 +230,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 .labels{position:absolute;inset:0;pointer-events:none}
 .lbl{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.95);color:#183b35;border-radius:7px;padding:4px 9px;font-size:13.5px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.18);pointer-events:auto;cursor:pointer}
 .lbl small{font-family:var(--f-mono);font-weight:400;color:#5d6878;margin-left:5px}
-.title3d{position:absolute;left:14px;bottom:56px;font-family:var(--f-display);font-weight:600;font-size:16px;color:var(--stage-ink);opacity:.92;pointer-events:none}
+.title3d{display:none;position:absolute;left:14px;bottom:56px;font-family:var(--f-display);font-weight:600;font-size:16px;color:var(--stage-ink);opacity:.92;pointer-events:none}
 .busy{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--stage) 70%,transparent);backdrop-filter:blur(2px)}
 .busy .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:8px;max-width:320px;text-align:center}
 .spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--blue-soft);border-top-color:var(--blue);margin:0 auto;animation:sp 0.9s linear infinite}
@@ -233,7 +243,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
   aside.panel{grid-row:3;border-right:0;border-top:1px solid var(--line);padding-right:max(16px,env(safe-area-inset-right,0px))}
   .tag{display:none}
   .hint{bottom:58px;font-size:12px}
-  .sunbox{display:none}
+  .sunbox,#solBtn{display:none}
   .guide{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;bottom:10px;max-height:72%;min-height:0}
   .stage.g-open .chips,.stage.g-open .hint,.stage.g-open .title3d{display:none}
   .gfab{bottom:52px}

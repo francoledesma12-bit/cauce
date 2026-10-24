@@ -17,7 +17,22 @@
 
   <aside class="panel">
     <section class="step">
-      <h2><span class="n">01</span>Subí un video del espacio</h2>
+      <h2>Propiedades</h2>
+      <p class="help">Elegí una para recorrerla por dentro.</p>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="step">
+      <div class="rooms-head"><h2>Ambientes</h2><span class="total" id="total"></span></div>
+      <p class="help">Tocá un ambiente para entrar.</p>
+      <ul class="rooms" id="rooms"></ul>
+    </section>
+
+    <details class="crear" id="crear">
+      <summary><span>Crear una propiedad nueva</span><small>Con un video, la cámara, el plano o fotos</small></summary>
+      <div class="sub">
+        <h3>Desde un video o la cámara</h3>
+        <p class="help">Recorré el lugar con el celular (10 a 90 s). Se analiza acá, en tu navegador.</p>
       <p class="help">Recorré el lugar con el celular (10 a 90 s). El video se analiza acá, en tu navegador.</p>
       <label class="drop" id="vdrop" for="vfile">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 10l5-3v10l-5-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
@@ -41,16 +56,9 @@
         <button class="btn ghost" id="vtour" type="button" hidden>▶ Ver el recorrido del video</button>
         <div class="status" id="vstatus" role="status"></div>
       </div>
-    </section>
-
-    <section class="step">
-      <h2><span class="n">02</span>Elegí o subí un plano</h2>
-      <p class="help">Probá con una propiedad de ejemplo o dejá que la IA lea tu plano.</p>
-      <div class="presets" id="presets"></div>
-    </section>
-
-    <section class="step">
-      <h2><span class="n">03</span>Leer un plano con IA</h2>
+      </div>
+      <div class="sub">
+        <h3>Desde el plano</h3>
       <div class="ai">
         <label class="drop" id="drop" for="file">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h7v9M10 12V3M14 12h7M14 12v4" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -62,18 +70,16 @@
         <button class="btn" id="read">Generar recorrido 3D</button>
         <div class="status" id="status" role="status"></div>
       </div>
-    </section>
-
-    <section class="step">
-      <div class="rooms-head"><h2><span class="n">04</span>Ambientes</h2><span class="total" id="total"></span></div>
-      <p class="help">Tocá un ambiente para recorrerlo.</p>
-      <ul class="rooms" id="rooms"></ul>
+      </div>
+      <div class="sub">
+        <h3>Fotos reales</h3>
       <label class="fotodrop" id="fotodrop" for="fotosIn">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v11H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.6"/></svg>
         <span>Agregar fotos reales<small>Comunes o 360°. Si el archivo se llama como el ambiente (cocina.jpg) se asigna solo.</small></span>
       </label>
       <input type="file" id="fotosIn" accept="image/jpeg,image/png,image/webp" multiple hidden>
-    </section>
+      </div>
+    </details>
   </aside>
 
   <main class="stage g-open" id="stage">
@@ -97,7 +103,8 @@
       <button id="mFotos" aria-pressed="false" hidden>Fotos reales</button>
     </div>
     <div class="tools">
-      <div class="sunbox">
+      <button id="solBtn" type="button" aria-expanded="false">☀ Sol y luz</button>
+      <div class="sunbox" id="sunbox" hidden>
         <div class="row"><b>Sol en Rosario</b><div class="seg" role="group" aria-label="Estación"><button data-e="verano" aria-pressed="false">Verano</button><button data-e="invierno" aria-pressed="true">Invierno</button></div></div>
         <input type="range" id="hora" min="6" max="20" step="0.25" value="11" aria-label="Hora del día">
         <div class="small" id="solTxt"></div>
