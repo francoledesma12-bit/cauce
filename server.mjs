@@ -53,18 +53,24 @@ async function pedirIA(content, { modelo, maxTokens, timeout }) {
     if (!r.ok) throw new Error(`anthropic ${r.status} ${data?.error?.message || ''}`);
     return (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
   }
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-goog-api-key': geminiKey },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: content.map(c => c.type === 'image' ? { inline_data: { mime_type: c.media_type, data: c.data } } : { text: c.text }) }],
-      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: Math.max(maxTokens, 2000) }
-    }),
-    signal: AbortSignal.timeout(timeout)
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: content.map(c => c.type === 'image' ? { inline_data: { mime_type: c.media_type, data: c.data } } : { text: c.text }) }],
+    generationConfig: { responseMimeType: 'application/json', maxOutputTokens: Math.max(maxTokens, 2000) }
   });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(`gemini ${r.status} ${data?.error?.message || ''}`);
-  return (data.candidates?.[0]?.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join('');
+  // Gemini gratis a veces responde "mucha demanda" (503/429): se reintenta solo antes de darse por vencido
+  const limite = Date.now() + timeout;
+  for (let intento = 1; ; intento++) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': geminiKey }, body,
+      signal: AbortSignal.timeout(Math.max(5000, limite - Date.now()))
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) return (data.candidates?.[0]?.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join('');
+    const reintentable = [429, 500, 503].includes(r.status);
+    console.error('gemini', r.status, 'intento', intento, data?.error?.message || '');
+    if (!reintentable || intento >= 4 || Date.now() + 2000 * intento > limite - 10000) throw new Error(`gemini ${r.status} ${data?.error?.message || ''}`);
+    await new Promise(ok => setTimeout(ok, 2000 * intento));
+  }
 }
 
 async function guia(req, res) {
@@ -106,6 +112,7 @@ async function leerPlano(req, res) {
     catch (e) { console.error('IA', e.message); return json(res, 502, { error: 'La IA no respondió. Probá de nuevo.' }); }
     const plano = parseJson(text);
     if (!plano || !Array.isArray(plano.ambientes)) return json(res, 502, { error: 'La IA respondió en un formato inválido. Probá de nuevo.' });
+    console.log('leer-plano', imagenes.length, 'imagen(es) ->', plano.ambientes.length, 'ambiente(s):', plano.ambientes.map(a => a.nombre).join(', ').slice(0, 200));
     json(res, 200, { plano });
   } catch (error) {
     if (error.status === 413) return json(res, 413, { error: 'La imagen es demasiado grande (máx. 6 MB).' });
