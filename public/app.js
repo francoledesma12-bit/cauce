@@ -1165,6 +1165,13 @@ async function resumirMuestras(muestras, meta, capturar){
 let cam = null;
 document.body.append($("vlive"));   // fuera del panel, para que ocupe toda la pantalla
 $("vcam").onclick = () => abrirCamara(false);
+// En la compu: QR para seguir en el celular, que es donde se graba
+if (matchMedia("(min-width: 821px)").matches && window.qrcode){
+  try{
+    const q = qrcode(0, "M"); q.addData(location.origin + location.pathname); q.make();
+    $("vqrimg").innerHTML = q.createSvgTag({cellSize: 4, margin: 0, scalable: true}); $("vqr").hidden = false;
+  }catch(_){}
+}
 $("vcam360").onclick = () => { TOUR = []; abrirCamara(true); };
 $("votro").onclick = () => abrirCamara(true);
 $("varmar").onclick = () => { $("vnext").hidden = true; $("vlive").hidden = true; armarTour(); };
