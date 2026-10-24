@@ -115,6 +115,14 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Pruebas:** navegador simulado (flechas, minimapa, QR, mensaje, sin errores) y prueba de ida y vuelta del link en Node.
 - **Pendiente:** ver la transición en un navegador real y en celular.
 
+## 24/10/2026, 14:35 ART — Caminar adentro de las fotos reales (Tour Into the Picture)
+
+- **Pedido de Cande:** que las fotos reales se recorran en 3D, no solo se miren.
+- **Técnica:** reconstrucción "Tour Into the Picture" (Horry, Anjyo y Arai, SIGGRAPH 1997). Para cada foto se marca la pared del fondo (`caja` en fotos.json, coordenadas normalizadas); con un gran angular de 78° se reconstruyen piso, techo y paredes laterales como una caja en metros (fondo a 4,2 m) y la foto se proyecta encima. Desde el punto de la toma la vista es idéntica a la foto; al avanzar hay paralaje real.
+- **Interacción:** paseo automático suave (avanza y vuelve 1 m), rueda / ▲▼ / W-S para caminar hasta 2,6 m, arrastrar para mirar. Pasar a otro ambiente: la cámara avanza hacia el fondo, funde y entra a la siguiente foto desde atrás.
+- **Geometría marcada a mano** para las 10 fotos de ejemplo (`public/assets/fotos/depto/geometria.json`). Fotos subidas por el usuario usan una caja por defecto. Siguiente paso natural: que la IA estime la caja (o un mapa de profundidad) de cada foto.
+- **Pruebas:** geometría sin NaN, profundidad 0,84–4,2 m; flujo de fotos y compartir sin errores en navegador simulado. Falta verlo en navegador real.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

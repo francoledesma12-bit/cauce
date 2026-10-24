@@ -1224,10 +1224,10 @@ function abrirAmbiente(i){
   if (fotosDe(i).length){ if (!$("fotos").hidden && fotoAmb !== i) caminarA(i, 0, 1); else verFotos(i, 0); }
   else { cerrarFotos(); mode === "recorrido" ? irA(i) : setMode("recorrido", i); }
 }
-function agregarFoto(i, url, nombre, demo = false){
+function agregarFoto(i, url, nombre, demo = false, caja = null){
   return new Promise(ok => {
     const img = new Image();
-    img.onload = () => { (FOTOS[i] = FOTOS[i] || []).push({url, pano: img.naturalWidth / img.naturalHeight >= 1.9, nombre, demo}); ok(true); };
+    img.onload = () => { (FOTOS[i] = FOTOS[i] || []).push({url, pano: img.naturalWidth / img.naturalHeight >= 1.9, nombre, demo, caja}); ok(true); };
     img.onerror = () => ok(false);
     img.src = url;
   });
@@ -1238,7 +1238,7 @@ async function cargarFotosDemo(key){
     const man = await r.json();
     for (const [nombre, lista] of Object.entries(man)){
       const i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(nombre)); if (i < 0) continue;
-      for (const f of lista) await agregarFoto(i, `./assets/fotos/${key}/${f}`, f, true);
+      for (const e of lista){ const f = typeof e === "string" ? e : e.f; await agregarFoto(i, `./assets/fotos/${key}/${f}`, f, true, e.caja || null); }
     }
     if (planKey === key){ renderPanel(); actualizarBotonFotos(); setHint(); }
   }catch(_){}
@@ -1267,41 +1267,44 @@ async function subirFotos(files){
 // Visor inmersivo: la foto se proyecta sobre un cilindro (foto común) o una esfera (360°) alrededor de la cámara.
 // Moverse a otro ambiente es una "caminata": la cámara avanza, la foto se funde y la siguiente aparece desde cerca.
 let pano = null;
-const ARCO = 1.75;   // ángulo horizontal que cubre una foto común (≈100°, gran angular inmobiliario)
+// Reconstrucción "Tour Into the Picture" (Horry et al.): la foto común se proyecta sobre una caja
+// (pared del fondo, piso, techo y paredes laterales) estimada desde su perspectiva. Desde el punto
+// de la toma se ve idéntica a la foto; al avanzar aparece la profundidad real.
+const HFOV = 78 * Math.PI/180;           // gran angular típico de fotografía inmobiliaria
+const PROF = 4.2;                         // distancia a la pared del fondo (m)
+const CAJA_DEF = [0.3, 0.24, 0.7, 0.64];
 function panoInit(){
   if (pano) return pano;
   const cv = $("fpano");
   let r; try{ r = new THREE.WebGLRenderer({canvas:cv, antialias:true}); }catch(_){ return null; }
   r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.outputEncoding = THREE.sRGBEncoding;
-  const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
-  const mat = new THREE.MeshBasicMaterial({transparent:true, opacity:1});
+  const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(60, 1, 0.05, 200);
+  const mat = new THREE.MeshBasicMaterial({transparent:true, opacity:1, side:THREE.DoubleSide});
   const sph = new THREE.Mesh(new THREE.SphereGeometry(50, 64, 32), mat); sph.scale.x = -1;
-  const cyl = new THREE.Mesh(new THREE.BufferGeometry(), mat); cyl.scale.x = -1;
-  sc.add(sph, cyl);
-  pano = {r, sc, cam, mat, sph, cyl, yaw:0, pitch:0, t:0, tex:null, esPano:false, vert:1, baseFov:60, fovMul:1, lim:{y:0.2, p:0.1}, drag:false};
+  const caja = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+  sc.add(sph, caja);
+  pano = {r, sc, cam, mat, sph, caja, yaw:0, pitch:0, z:0, x:0, t:0, tex:null, esPano:false, vf:1, fovMul:1, drag:false, auto:true};
   let d = null;
-  cv.addEventListener("pointerdown", e => { d = {x:e.clientX, y:e.clientY, yaw:pano.yaw, pitch:pano.pitch, m:0}; pano.drag = true; cv.setPointerCapture(e.pointerId); });
-  cv.addEventListener("pointermove", e => { if (!d) return; d.m = Math.max(d.m, Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y));
-    pano.yaw = d.yaw + (e.clientX - d.x)*0.0035; pano.pitch = d.pitch + (e.clientY - d.y)*0.0035; limitar(); });
+  cv.addEventListener("pointerdown", e => { d = {x:e.clientX, y:e.clientY, yaw:pano.yaw, pitch:pano.pitch}; pano.drag = true; pano.auto = false; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => { if (!d) return; pano.yaw = d.yaw + (e.clientX - d.x)*0.0035; pano.pitch = d.pitch + (e.clientY - d.y)*0.0035; limitar(); });
   cv.addEventListener("pointerup", () => { d = null; pano.drag = false; });
-  cv.addEventListener("wheel", e => { e.preventDefault(); pano.fovMul = Math.max(0.6, Math.min(1, pano.fovMul + e.deltaY*0.0006)); ajustarCamara(); }, {passive:false});
+  cv.addEventListener("wheel", e => { e.preventDefault(); pano.auto = false;
+    if (pano.esPano){ pano.fovMul = Math.max(0.6, Math.min(1, pano.fovMul + e.deltaY*0.0006)); ajustarCamara(); }
+    else { pano.z = Math.max(0, Math.min(PROF*0.62, pano.z - e.deltaY*0.003)); } }, {passive:false});
   return pano;
 }
 function limitar(){
   const p = pano; if (p.esPano){ p.pitch = Math.max(-1.3, Math.min(1.3, p.pitch)); return; }
-  p.yaw = Math.max(-p.lim.y, Math.min(p.lim.y, p.yaw)); p.pitch = Math.max(-p.lim.p, Math.min(p.lim.p, p.pitch));
+  p.yaw = Math.max(-0.42, Math.min(0.42, p.yaw)); p.pitch = Math.max(-0.25, Math.min(0.25, p.pitch));
 }
 function ajustarCamara(){
   const p = pano, w = stage.clientWidth, h = Math.max(1, stage.clientHeight), asp = w / h;
   p.r.setSize(w, h, false); p.cam.aspect = asp;
-  if (p.esPano){ p.cam.fov = 72 * p.fovMul; }
+  if (p.esPano) p.cam.fov = 72 * p.fovMul;
   else {
-    // que la foto llene la pantalla sin mostrar bordes
-    const vMax = p.vert * 0.96, porAncho = 2*Math.atan(Math.tan(ARCO/2*0.97)/asp);
-    p.baseFov = Math.min(vMax, porAncho) * 180/Math.PI; p.cam.fov = p.baseFov * p.fovMul;
-    const vf = p.cam.fov*Math.PI/180, hf = 2*Math.atan(Math.tan(vf/2)*asp);
-    p.lim = {y: Math.max(0, (ARCO - hf)/2 * 0.95), p: Math.max(0, (p.vert - vf)/2 * 0.9)};
-    limitar();
+    // encuadre inicial = la foto completa, sin bordes vacíos
+    const porAlto = p.vf, porAncho = 2*Math.atan(Math.tan(HFOV/2)/asp);
+    p.cam.fov = Math.min(porAlto, porAncho) * 180/Math.PI * 0.97 * p.fovMul;
   }
   p.cam.updateProjectionMatrix(); p.w = w; p.h = h;
 }
@@ -1309,17 +1312,40 @@ function texturaPara(f){
   return new Promise((ok, ko) => { setTimeout(() => ko(new Error("timeout")), 9000);
     new THREE.TextureLoader().load(f.url, t => { t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; ok(t); }, undefined, ko); });
 }
-function montar(t, esPano){
-  const p = pano; if (p.tex && p.tex !== t) p.tex.dispose(); p.tex = t; p.mat.map = t; p.mat.needsUpdate = true;
-  p.esPano = esPano; p.sph.visible = esPano; p.cyl.visible = !esPano;
-  if (!esPano){
-    const A = t.image.width / t.image.height, R = 10, Hh = R*ARCO / A;
-    p.cyl.geometry.dispose(); p.cyl.geometry = new THREE.CylinderGeometry(R, R, Hh, 96, 1, true, Math.PI - ARCO/2, ARCO);
-    p.vert = 2*Math.atan((Hh/2)/R);
+function geometriaCaja(asp, c){
+  const tx = Math.tan(HFOV/2), ty = tx / asp, NX = 96, NY = Math.round(96/asp);
+  // pared del fondo en coordenadas normalizadas (-1..1)
+  const bx0 = Math.min(-0.04, 2*c[0] - 1), bx1 = Math.max(0.04, 2*c[2] - 1), by1 = Math.max(0.04, 1 - 2*c[1]), by0 = Math.min(-0.04, 1 - 2*c[3]);
+  const pos = [], uv = [], idx = [];
+  for (let j = 0; j <= NY; j++) for (let i = 0; i <= NX; i++){
+    const u = i/NX, v = j/NY, x = 2*u - 1, y = 1 - 2*v;
+    let Z = PROF;
+    if (x > bx1) Z = Math.min(Z, PROF*bx1/x);
+    if (x < bx0) Z = Math.min(Z, PROF*bx0/x);
+    if (y > by1) Z = Math.min(Z, PROF*by1/y);
+    if (y < by0) Z = Math.min(Z, PROF*by0/y);
+    Z = Math.max(0.35, Z);
+    pos.push(x*tx*Z, y*ty*Z, -Z); uv.push(u, 1 - v);
   }
-  p.yaw = 0; p.pitch = 0; p.fovMul = 1; p.t = 0; ajustarCamara();
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++){
+    const a = j*(NX + 1) + i, b = a + 1, c2 = a + NX + 1, d = c2 + 1; idx.push(a, c2, b, b, c2, d);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+  return g;
+}
+function montar(t, f){
+  const p = pano; if (p.tex && p.tex !== t) p.tex.dispose(); p.tex = t; p.mat.map = t; p.mat.needsUpdate = true;
+  p.esPano = !!f.pano; p.sph.visible = p.esPano; p.caja.visible = !p.esPano;
+  if (!p.esPano){
+    const asp = t.image.width / t.image.height;
+    p.caja.geometry.dispose(); p.caja.geometry = geometriaCaja(asp, f.caja || CAJA_DEF);
+    p.vf = 2*Math.atan(Math.tan(HFOV/2)/asp);
+  }
+  p.yaw = 0; p.pitch = 0; p.fovMul = 1; p.t = 0; p.z = 0; p.x = 0; p.auto = true; ajustarCamara();
 }
 let caminando = false;
+const anim = (dur, fn) => new Promise(res => { const t0 = performance.now(); const step = now => { const k = Math.min(1, (now - t0)/dur); fn(k); k < 1 ? requestAnimationFrame(step) : res(); }; requestAnimationFrame(step); });
 async function caminarA(i, k = 0, dir = 0){
   const l = fotosDe(i); if (!l.length){ verFotos(i, 0); return; }
   const f = l[((k % l.length) + l.length) % l.length];
@@ -1327,29 +1353,35 @@ async function caminarA(i, k = 0, dir = 0){
   if (caminando) return; caminando = true;
   try{
     const tex = await texturaPara(f);
-    const t0 = performance.now(), dur = 420, y0 = p.yaw;
-    await new Promise(res => { const step = now => { const k2 = Math.min(1, (now - t0)/dur), e = k2*k2;
-      p.fovMul = 1 - 0.38*e; p.yaw = y0 + dir*0.25*e; p.mat.opacity = 1 - 0.85*e; ajustarCamara(); k2 < 1 ? requestAnimationFrame(step) : res(); }; requestAnimationFrame(step); });
+    // avanzar dentro de la foto actual hacia la salida y fundir
+    const z0 = p.z, y0 = p.yaw;
+    await anim(650, k2 => { const e = k2*k2; p.z = z0 + (PROF*0.7 - z0)*e; p.yaw = y0 + dir*0.18*e; p.mat.opacity = 1 - 0.9*e; });
     verFotos(i, k, tex);
-    p.fovMul = 0.72; p.mat.opacity = 0.15; p.yaw = -dir*0.12; ajustarCamara();
-    const t1 = performance.now(), dur2 = 520;
-    await new Promise(res => { const step = now => { const k2 = Math.min(1, (now - t1)/dur2), e = 1 - Math.pow(1 - k2, 3);
-      p.fovMul = 0.72 + 0.28*e; p.mat.opacity = 0.15 + 0.85*e; p.yaw = -dir*0.12*(1 - e); ajustarCamara(); k2 < 1 ? requestAnimationFrame(step) : res(); }; requestAnimationFrame(step); });
+    // entrar a la siguiente desde atrás de la toma
+    p.z = -0.9; p.mat.opacity = 0.1;
+    await anim(750, k2 => { const e = 1 - Math.pow(1 - k2, 3); p.z = -0.9*(1 - e); p.mat.opacity = 0.1 + 0.9*e; });
   }catch(_){ verFotos(i, k); }
-  finally{ caminando = false; }
+  finally{ caminando = false; p.mat.opacity = 1; }
 }
 function panoFrame(dt){
   if (!pano || $("fpano").hidden || $("fotos").hidden) return;
   if (pano.w !== stage.clientWidth || pano.h !== stage.clientHeight) ajustarCamara();
   pano.t += dt;
-  // respiración de cámara: un paneo lento, como un video de la propiedad
-  if (!pano.drag && !caminando){
-    if (pano.esPano) pano.yaw += dt*0.04;
-    else { pano.yaw += Math.sin(pano.t*0.35)*dt*0.025; limitar(); }
+  if (pano.esPano){ if (!pano.drag && pano.auto) pano.yaw += dt*0.04; }
+  else {
+    if (keysF.has("arrowup") || keysF.has("w")) { pano.z = Math.min(PROF*0.62, pano.z + dt*1.2); pano.auto = false; }
+    if (keysF.has("arrowdown") || keysF.has("s")) { pano.z = Math.max(0, pano.z - dt*1.2); pano.auto = false; }
+    // paseo automático suave: avanza y retrocede un metro, como una toma con estabilizador
+    if (pano.auto && !caminando) pano.z = (1 - Math.cos(pano.t*0.32))*0.5*1.1;
   }
+  if (avanzar) { pano.z = Math.min(PROF*0.62, pano.z + dt*1.1*avanzar); if (pano.z < 0) pano.z = 0; }
+  pano.cam.position.set(pano.x, 0, pano.esPano ? 0 : -pano.z);
   pano.cam.quaternion.setFromEuler(new THREE.Euler(pano.pitch, pano.yaw, 0, "YXZ"));
   pano.r.render(pano.sc, pano.cam);
 }
+const keysF = new Set(); let avanzar = 0;
+addEventListener("keydown", e => { if (!$("fotos").hidden && !e.target.closest("textarea,input")) keysF.add(e.key.toLowerCase()); });
+addEventListener("keyup", e => keysF.delete(e.key.toLowerCase()));
 
 // ambientes conectados por puertas, pasos o aberturas (salen del plano, no se inventan)
 function vecinos(i){
@@ -1406,8 +1438,8 @@ function verFotos(i, k, texLista){
   const p = panoInit();
   if (p){
     $("fimg").hidden = true; $("fpano").hidden = false;
-    if (texLista) montar(texLista, f.pano);
-    else texturaPara(f).then(t => { if (fotoAmb === i && fotoIdx === n) montar(t, f.pano); }).catch(() => {});
+    if (texLista) montar(texLista, f);
+    else texturaPara(f).then(t => { if (fotoAmb === i && fotoIdx === n) montar(t, f); }).catch(() => {});
   } else { $("fpano").hidden = true; const im = $("fimg"); im.hidden = false; im.src = f.url; im.alt = "Foto real de " + a.nombre; }
 }
 function marcarChip(i){ $("chips").childNodes.forEach(b => b.setAttribute("aria-current", +b.dataset.i === i)); currentRoom = i; }
@@ -1418,6 +1450,9 @@ function cerrarFotos(){
   $("mMaqueta").setAttribute("aria-pressed", mode === "maqueta"); $("mRecorrido").setAttribute("aria-pressed", mode === "recorrido");
   currentRoom = -2;
 }
+[["fAdel", 1], ["fAtras", -1]].forEach(([id, v]) => { const b = $(id);
+  b.addEventListener("pointerdown", e => { avanzar = v; if (pano) pano.auto = false; b.setPointerCapture(e.pointerId); });
+  ["pointerup","pointercancel","pointerleave"].forEach(ev => b.addEventListener(ev, () => avanzar = 0)); });
 $("fprev").onclick = () => caminarA(fotoAmb, fotoIdx - 1, -1);
 $("fnext").onclick = () => caminarA(fotoAmb, fotoIdx + 1, 1);
 $("f3d").onclick = () => { const i = fotoAmb; cerrarFotos(); mode === "recorrido" ? irA(i) : setMode("recorrido", i); };
