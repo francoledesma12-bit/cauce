@@ -26,8 +26,9 @@ Punto de lectura compartido para Franco, Cande, Oscar, Luz y las herramientas qu
 | Generación desde la aplicación pública | Falta conectar entrada, trabajo de generación, guardado y salida | Pendiente |
 | Ejecución sin computadora local | El coordinador de la prueba corrió en la computadora de Franco | Pendiente en VPS / Cloud |
 | Clave de API de la aplicación | Última lectura de /cauce/api/health: generation = not_configured | Pendiente; no publicar claves en GitHub |
-| Cambios recientes de Cande | Commit ea4e762: guía, iluminación y detalles del modelo | Código subido; no se declara validado todo el comportamiento |
-| Versión servida | Última consulta de salud devolvió 2fae3d9, anterior a ea4e762 | Comprobar despliegue antes de ensayar |
+| Cambios recientes de Cande | Commit ea4e762 y siguiente: guía con IA, sol, detalles del modelo y plano de Astra como ejemplo | Publicado; lógica probada en navegador simulado; falta revisión visual en celulares |
+| Versión servida | Salud a las 13:20 ART: revision ea4e762 | Coincide con main de producto |
+| Resultado de Astra en la app | Tercer plano de ejemplo en /cauce/app.html, mismo JSON sin adaptar | Publicado |
 | Permisos de Cande | Configuración y pruebas previas documentadas en despliegue | Revalidar desde su propia sesión si aparece un error |
 
 El permiso de una app de GitHub no equivale a permisos de consola del VPS ni prueba acceso a un modelo. No se modificaron permisos ni secretos al publicar este registro.

@@ -53,7 +53,8 @@ const PRESETS = {
       {tipo:"ventana", orientacion:"v", x:7.8, y:2.8, ancho:1.2},
       {tipo:"ventana", orientacion:"v", x:0, y:3.3, ancho:1.8}
     ]
-  }
+  },
+  astra: {"nombre": "Plano de prueba · leído por Astra", "zona": "Interpretado por IA en 14 s, sin correcciones", "norte": "arriba", "ambientes": [{"nombre": "Estar / Comedor", "tipo": "estar", "x": 0, "y": 0, "ancho": 4, "largo": 5}, {"nombre": "Cocina", "tipo": "cocina", "x": 4, "y": 0, "ancho": 2, "largo": 3}, {"nombre": "Baño", "tipo": "bano", "x": 4, "y": 3, "ancho": 2, "largo": 2}, {"nombre": "Dormitorio", "tipo": "dormitorio", "x": 0, "y": 5, "ancho": 6, "largo": 3}], "aberturas": []}
 };
 
 const TIPOS = {

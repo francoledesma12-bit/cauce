@@ -24,6 +24,28 @@
 - **Protección del trabajo compartido:** solo rutas nuevas de documentación y evidencia; sin cambios en src/, public/, server.mjs, despliegue ni secretos.
 - **Siguiente paso prioritario:** elegir y conectar el proveedor desde el VPS y probar una carga desde otro celular.
 
+## 24/10/2026, 13:25 ART — Entrega de Cande (con Claude): guía con IA, sol y plano de Astra en la app
+
+- **Objetivo:** sumar el diferencial de la demo (recorrido que responde preguntas) y conectar el resultado de Astra con el visor de la aplicación.
+- **Estado:** publicado; lógica probada en navegador simulado; visual pendiente de revisar en celulares reales.
+- **Cambios y commit:**
+  - ea4e762: guía con IA dentro del recorrido, sol de Rosario por hora y estación, puertas, carpintería, zócalos, techos con luminarias, cielo y ciudad, marca unificada con la portada.
+  - Este commit: el resultado de Astra (`docs/pruebas/astra/resultado-astra.json`) se carga tal cual como tercer plano de ejemplo en `/cauce/app.html`. El formato de Astra y el del visor coinciden, no hizo falta adaptar nada.
+- **Pruebas y evidencia:**
+  - /cauce/api/health devolvió `revision=ea4e762…` a las 13:20 ART: la versión servida coincide con main de producto.
+  - Navegador simulado (jsdom + three.js): carga de los 3 planos, 48 m² en el de Astra, preguntas locales de navegación, superficie, dormitorios, muebles y sol; sin errores de JavaScript.
+  - Servidor local: `/api/leer-plano` y `/api/guia` responden 503 con mensaje claro mientras no haya clave.
+- **Cómo funciona la guía:** primero intenta responder localmente (navegación, m², dormitorios, muebles contra largo libre de paredes, sol según orientación). Para lo demás usa IA: en Claude, la cuenta del usuario; en el VPS, `POST /cauce/api/guia` con `ANTHROPIC_API_KEY` y modelo rápido (`CAUCE_MODEL_RAPIDO`, por defecto `claude-haiku-5-5`). Si la IA falla, cae a las respuestas locales: la demo no se corta.
+- **Supuestos declarados:** el norte del plano se toma "arriba" salvo que el plano diga otra cosa; el sol usa la latitud de Rosario (-32,95°). En el plano de Astra no hay aberturas, así que el recorrido muestra ambientes cerrados.
+- **Límites:** sin clave en el VPS, la lectura de planos y las preguntas abiertas solo funcionan en la versión de Claude.
+- **Siguiente paso:** decisión del proveedor (ver abajo) y ensayo en dos celulares.
+
+### Propuesta de Cande para la decisión 1 (proveedor)
+
+Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, variable `ANTHROPIC_API_KEY`, reiniciar `cauce.service`). Es el único camino que hoy funciona sin la computadora de Franco y ya está implementado y probado del lado del código. Astra queda como evidencia de que el contrato JSON funciona con otro modelo: su resultado se carga en la app sin cambios. Si Franco prefiere otro proveedor, solo hay que reemplazar la llamada en `server.mjs`; el contrato no cambia.
+
+**Para no pisarnos:** el producto (src/, public/, server.mjs) lo toca Cande; la documentación y el VPS, Franco. Antes de subir: `git pull --rebase`.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):
