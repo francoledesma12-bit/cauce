@@ -175,3 +175,7 @@ Pedido de Franco: probar experiencia realista desde fotos. Publicación en /cauc
 
 ## 24/10/2026 — Preparación de reconstrucción GPU con RunPod
 Franco pidió el flujo completo de Tecnoteca y propuso alquilar RunPod. Se preservan cambios de Cande de video/cámara (e05f496). Se preparó docs/runpod/pipeline.py: FFmpeg → COLMAP → control de alineación → Splatfacto → PLY y estados/logs reales. Verificados sintaxis Python, CLI y aceptación/rechazo de alineación con datos sintéticos. NO ejecutado en GPU. Video IMG_6732.MOV aún subiendo, pod sin conectar. No se contrató ni compró API. Faltan ensayo GPU, inspección del video, calidad, visor de splats y panoramas. No afirmar tiempo real ni réplica exacta. El límite de tiempo detiene el proceso, no la facturación del pod.
+
+## 24/10/2026 — Tecnoteca como sección adicional de Habita 3D
+
+Pedido de Franco: mostrar Tecnoteca en grande sin pisar el trabajo de Candela. Se conserva la portada Habita 3D y su demo; se agrega sección con visor embebido y apertura amplia en /cauce-360-hackaton/. Tres panoramas experimentales generados con proyección CUDA en NVIDIA L4 desde IMG_6732.MOV. Cobertura parcial y uniones visibles; NO es un modelo 3D métrico. COLMAP no logró alineación suficiente para Splatfacto (3/200; recuperación máxima 13). Archivos públicos de la muestra en /cauce-media/360/. No se modifican app.html, app.js, servidor, planes ni otros recorridos.
