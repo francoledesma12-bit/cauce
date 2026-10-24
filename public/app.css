@@ -131,6 +131,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 .fempty{position:absolute;inset:0;display:grid;place-items:center;color:#e9efe6;text-align:center;padding:24px}
 .fempty b{font-family:var(--f-display);font-size:18px;display:block;margin-bottom:6px}
 .vres{display:grid;gap:10px;margin-top:10px}
+.vsrc{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
 .vprog{height:4px;border-radius:4px;background:var(--line);overflow:hidden}
 .vprog i{display:block;height:100%;width:0;background:var(--olive);transition:width .2s}
 .vstats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0}

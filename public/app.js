@@ -1078,7 +1078,11 @@ async function analizarVideo(file){
   $("vbar").style.width = "0"; $("vsub").textContent = file.name; vstatus("Abriendo el video…");
   if (vEl.src) URL.revokeObjectURL(vEl.src);
   vEl.src = URL.createObjectURL(file);
-  try{ await evento(vEl, "loadeddata", 20000); }
+  const cargado = evento(vEl, "loadeddata", 20000);
+  vEl.load();
+  // en iPhone el video no se decodifica hasta que se reproduce una vez (mudo y en línea no pide permiso)
+  vEl.play().then(() => vEl.pause()).catch(() => {});
+  try{ await cargado; vEl.pause(); }
   catch(_){ vstatus("Este navegador no puede abrir ese video. Probá con un MP4 (en iPhone: Ajustes › Cámara › Formatos › Más compatible).", "err"); return; }
   const dur = vEl.duration, vw = vEl.videoWidth, vh = vEl.videoHeight;
   if (!isFinite(dur) || dur <= 0 || !vw){ vstatus("No pude leer la duración del video.", "err"); return; }
@@ -1243,6 +1247,7 @@ $("vgo").onclick = async () => {
   titulo.textContent = tituloViejo; $("busy").hidden = true; $("vgo").disabled = false;
   try{ history.replaceState(null, "", location.pathname); }catch(_){}
   if (matchMedia("(min-width: 821px)").matches) guia(true);
+  else stage.scrollIntoView({behavior: "smooth", block: "start"});
 };
 $("vfile").addEventListener("change", e => analizarVideo(e.target.files[0]));
 const vdrop = $("vdrop");

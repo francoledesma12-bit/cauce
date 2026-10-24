@@ -127,6 +127,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 .fempty{position:absolute;inset:0;display:grid;place-items:center;color:#e9efe6;text-align:center;padding:24px}
 .fempty b{font-family:var(--f-display);font-size:18px;display:block;margin-bottom:6px}
 .vres{display:grid;gap:10px;margin-top:10px}
+.vsrc{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
 .vprog{height:4px;border-radius:4px;background:var(--line);overflow:hidden}
 .vprog i{display:block;height:100%;width:0;background:var(--olive);transition:width .2s}
 .vstats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0}
@@ -243,7 +244,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
         <span>Elegir video<small id="vsub">MP4 o MOV del celular</small></span>
       </label>
       <input type="file" id="vfile" accept="video/*" hidden>
-      <video id="vsrc" muted playsinline preload="auto" hidden></video>
+      <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>
       <div class="vres" id="vres" hidden>
         <div class="vprog"><i id="vbar"></i></div>
         <dl class="vstats" id="vstats"></dl>
@@ -1437,7 +1438,11 @@ async function analizarVideo(file){
   $("vbar").style.width = "0"; $("vsub").textContent = file.name; vstatus("Abriendo el video…");
   if (vEl.src) URL.revokeObjectURL(vEl.src);
   vEl.src = URL.createObjectURL(file);
-  try{ await evento(vEl, "loadeddata", 20000); }
+  const cargado = evento(vEl, "loadeddata", 20000);
+  vEl.load();
+  // en iPhone el video no se decodifica hasta que se reproduce una vez (mudo y en línea no pide permiso)
+  vEl.play().then(() => vEl.pause()).catch(() => {});
+  try{ await cargado; vEl.pause(); }
   catch(_){ vstatus("Este navegador no puede abrir ese video. Probá con un MP4 (en iPhone: Ajustes › Cámara › Formatos › Más compatible).", "err"); return; }
   const dur = vEl.duration, vw = vEl.videoWidth, vh = vEl.videoHeight;
   if (!isFinite(dur) || dur <= 0 || !vw){ vstatus("No pude leer la duración del video.", "err"); return; }
@@ -1602,6 +1607,7 @@ $("vgo").onclick = async () => {
   titulo.textContent = tituloViejo; $("busy").hidden = true; $("vgo").disabled = false;
   try{ history.replaceState(null, "", location.pathname); }catch(_){}
   if (matchMedia("(min-width: 821px)").matches) guia(true);
+  else stage.scrollIntoView({behavior: "smooth", block: "start"});
 };
 $("vfile").addEventListener("change", e => analizarVideo(e.target.files[0]));
 const vdrop = $("vdrop");
