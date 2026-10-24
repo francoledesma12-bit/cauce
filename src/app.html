@@ -824,11 +824,15 @@ async function pedirPlano(prompt, file){
   if (sampleFn){
     return await sampleFn.json(prompt, {images: file && imagesOk ? [file] : undefined, modelTier: "default", cache: false});
   }
-  // Fuera de Claude (deploy en Vercel): API propia
-  const fd = new FormData(); fd.append("prompt", prompt); if (file) fd.append("imagen", file);
-  const r = await fetch("/api/leer-plano", {method:"POST", body: fd});
-  if (!r.ok) throw {code:"api", message: await r.text()};
-  return await r.json();
+  // Fuera de Claude (servidor de Cauce): API propia
+  let imagen = null;
+  if (file) imagen = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = ko; fr.readAsDataURL(file); });
+  let r;
+  try { r = await fetch("./api/leer-plano", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({prompt, imagen})}); }
+  catch(_) { throw {code:"api", message:"No hay conexión con el servidor de Cauce."}; }
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw {code:"api", message: body.error || "El servidor no pudo leer el plano."};
+  return body.plano;
 }
 
 $("read").onclick = async () => {

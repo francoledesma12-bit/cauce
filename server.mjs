@@ -8,7 +8,66 @@ const publicRoot = path.join(root, 'public');
 const port = Number(process.env.PORT || 8797);
 const base = '/cauce';
 const revision = await readFile(path.join(root, '.revision'), 'utf8').then(s => s.trim()).catch(() => 'local');
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8' };
+
+// Lectura de planos con IA. La clave vive solo en el VPS (/etc/cauce), nunca en el repositorio.
+const apiKey = process.env.ANTHROPIC_API_KEY || '';
+const model = process.env.CAUCE_MODEL || 'claude-sonnet-5-5';
+const generation = apiKey ? 'ready' : 'not_configured';
+const MAX_BODY = 8 * 1024 * 1024;
+let running = 0;
+
+const json = (res, code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on('data', c => { size += c.length; if (size > MAX_BODY) { reject(Object.assign(new Error('too_large'), { status: 413 })); req.destroy(); } else chunks.push(c); });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+function parseJson(text) {
+  try { return JSON.parse(text); } catch {}
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/); if (fence) { try { return JSON.parse(fence[1]); } catch {} }
+  const a = text.indexOf('{'), b = text.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(text.slice(a, b + 1)); } catch {} }
+  return null;
+}
+
+async function leerPlano(req, res) {
+  if (!apiKey) return json(res, 503, { error: 'La lectura con IA todavía no está configurada en el servidor.' });
+  if (running >= 3) return json(res, 429, { error: 'Hay varios planos procesándose. Probá en unos segundos.' });
+  running++;
+  try {
+    const { prompt, imagen } = JSON.parse(await readBody(req));
+    if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 20000) return json(res, 400, { error: 'Pedido inválido.' });
+    const content = [];
+    if (imagen) {
+      const m = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(imagen);
+      if (!m) return json(res, 400, { error: 'La imagen tiene que ser JPG, PNG o WebP.' });
+      content.push({ type: 'image', source: { type: 'base64', media_type: m[1], data: m[2] } });
+    }
+    content.push({ type: 'text', text: prompt + '\n\nRespondé solo con el JSON, sin texto adicional.' });
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model, max_tokens: 4000, messages: [{ role: 'user', content }] }),
+      signal: AbortSignal.timeout(90000)
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { console.error('IA', r.status, data?.error?.message); return json(res, 502, { error: 'La IA no respondió. Probá de nuevo.' }); }
+    const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+    const plano = parseJson(text);
+    if (!plano || !Array.isArray(plano.ambientes)) return json(res, 502, { error: 'La IA respondió en un formato inválido. Probá de nuevo.' });
+    json(res, 200, { plano });
+  } catch (error) {
+    if (error.status === 413) return json(res, 413, { error: 'La imagen es demasiado grande (máx. 6 MB).' });
+    console.error('leer-plano', error.message);
+    json(res, 500, { error: 'No se pudo leer el plano.' });
+  } finally { running--; }
+}
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -16,6 +75,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
   try {
+    if (req.method === 'POST' && req.url === `${base}/api/leer-plano`) { await leerPlano(req, res); return; }
     if (!['GET', 'HEAD'].includes(req.method)) {
       res.writeHead(405, { Allow: 'GET, HEAD' }); res.end(); return;
     }
@@ -23,7 +83,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === base) { res.writeHead(308, { Location: base + '/' }); res.end(); return; }
     if (url.pathname === `${base}/api/health`) {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ status: 'ok', project: 'cauce', revision, generation: 'not_configured' })); return;
+      res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ status: 'ok', project: 'cauce', revision, generation })); return;
     }
     if (!url.pathname.startsWith(base + '/')) { res.writeHead(404); res.end('No encontrado'); return; }
     let relative = decodeURIComponent(url.pathname.slice(base.length + 1));
