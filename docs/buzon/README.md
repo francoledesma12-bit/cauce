@@ -2,6 +2,12 @@
 
 Punto de lectura compartido para Franco, Cande, Oscar, Luz y las herramientas que el equipo use. Última actualización: 24/10/2026, hora de Argentina.
 
+## Entrega nueva: lista completa, diseño, video y voz
+
+[Plan completo y referencias](../ux/PRODUCTO-Y-EXPERIENCIA.md) · [Probar la experiencia](https://andromedaweb.store/cauce-experiencia/) · [Ver video de 30 s](https://andromedaweb.store/cauce-experiencia/recorrido-demo.mp4) · [Fuentes y verificación](../ux/README.md)
+
+Franco confirmó que todavía no tiene cuenta de ElevenLabs. La guía de prueba usa la voz del navegador; la voz definitiva y su integración al caminar siguen pendientes. La lista original se conserva y ahora incluye video, guía de voz y diseño integral.
+
 ## Empezar por acá
 
 **Objetivo de la demo:** una inmobiliaria sube un plano con medidas, revisa lo interpretado y obtiene un modelo que otra persona puede recorrer desde un enlace o QR. El beneficio que queremos demostrar es ayudar a entender la distribución de una propiedad antes de visitarla.

@@ -79,6 +79,20 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Licencias:** ver `public/assets/CREDITOS.txt` (CC BY 4.0 y CC0). El sillón y la planta piden atribución: hay que mencionarlos en la web o en el README.
 - **Pendiente:** revisar en celulares reales la carga y la fluidez; si va lento, sacar la planta (3 MB) o el sillón individual (3 MB).
 
+## 24/10/2026, 13:36 ART — Lista completa, propuesta UX, video y voz
+
+- **Pedido de Franco:** ejecutar la lista completa y sumar video breve, guía contextual con ElevenLabs, realismo progresivo y pantallas claras con letras grandes; buscar referencias del mercado.
+- **Coordinación previa:** leídos el registro y los commits de Cande 132d5e1, 427ba48, 6cc8f22 y 3f20421. Se preserva su producto y sus entradas. El prototipo es una referencia de experiencia para integrar sobre su trabajo.
+- **Investigación:** documentación oficial de Matterport, Zillow 3D Home, Planner 5D, CubiCasa y ElevenLabs. Fuentes y recomendaciones en [producto y experiencia](../ux/PRODUCTO-Y-EXPERIENCIA.md).
+- **Entregado:** [prototipo navegable](https://andromedaweb.store/cauce-experiencia/) con visita, carga/revisión del ejemplo, lista completa y referencias; [clip de 30 segundos](https://andromedaweb.store/cauce-experiencia/recorrido-demo.mp4); fuentes reproducibles en docs/ux/prototipo/.
+- **Pruebas:** selección del baño y subtítulo correspondiente; ejemplo de carga, paso de revisión y bloqueo hasta confirmar supuestos; vista móvil emulada y corrección de encuadre; sin desborde horizontal en la comprobación. La emulación no reemplaza dos celulares reales.
+- **Video:** render determinista de 900 cuadros; MP4 H.264, 1280×720, 30 fps, duración 30 s. Verificado con ffprobe e inspección de cuadros. Archivo público responde 200 con tipo video/mp4 y 2.306.500 bytes. Es maqueta aérea con muebles ilustrativos, sin narración ni recorrido interior fotorrealista.
+- **Corrección de exportación:** primera captura en tiempo real descartada por pocos cuadros; sustituida por render cuadro a cuadro y codificación MP4.
+- **Voz:** Franco confirmó que todavía no tiene cuenta de ElevenLabs. No se encontró ELEVENLABS_API_KEY declarada en la configuración de Cauce. No se creó cuenta ni se compró crédito. Prototipo con voz del navegador y subtítulos; calidad auditiva y ElevenLabs no se dan por validados.
+- **Diseño de guía:** activación voluntaria, una frase por ambiente, cancelación al cambiar, repetición a pedido, audio guardado por propiedad y estado silencioso como alternativa. La detección de entrada al caminar debe integrarse en el visor de Cande.
+- **Pendientes explícitos:** proveedor de generación en VPS, cuenta/clave ElevenLabs, integración UX/voz en la aplicación, QR y persistencia por propiedad, propiedad real adicional y prueba en dispositivos reales.
+- **Estado:** prototipo y clip publicados; fuentes y plan documentados. No es cierre de toda la lista.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

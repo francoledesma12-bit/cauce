@@ -1,0 +1,11 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const here=path.dirname(fileURLToPath(import.meta.url));
+const root=path.resolve(here,'../../..'),output=path.join(root,'work/cauce-experiencia');
+await fs.mkdir(output,{recursive:true});
+for(const file of ['index.html','style.css','app.js'])await fs.copyFile(path.join(here,file),path.join(output,file));
+for(const file of ['resultado.json','plano-prueba.png'])await fs.copyFile(path.join(root,'docs/pruebas/astra',file),path.join(output,file));
+for(const file of ['three.min.js','OrbitControls.js','three-LICENSE.txt'])await fs.copyFile(path.join(root,'public/vendor',file),path.join(output,file));
+for(const file of ['ibm-plex-sans-latin-400-normal.woff2','ibm-plex-sans-latin-600-normal.woff2','bricolage-grotesque-latin-600-normal.woff2'])await fs.copyFile(path.join(root,'public/vendor/fonts',file),path.join(output,file));
+console.log('Prototipo preparado en '+output);
