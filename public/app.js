@@ -1163,7 +1163,9 @@ async function resumirMuestras(muestras, meta, capturar){
 let cam = null;
 document.body.append($("vlive"));   // fuera del panel, para que ocupe toda la pantalla
 $("vcam").onclick = () => abrirCamara(false);
-$("vcam360").onclick = () => abrirCamara(true);
+$("vcam360").onclick = () => { TOUR = []; abrirCamara(true); };
+$("votro").onclick = () => abrirCamara(true);
+$("varmar").onclick = () => { $("vnext").hidden = true; $("vlive").hidden = true; armarTour(); };
 async function abrirCamara(modo360){
   $("vres").hidden = false; vstatus("");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ vstatus("Este navegador no deja usar la cámara desde la página. Usá «Elegir video».", "err"); return; }
@@ -1184,6 +1186,8 @@ async function abrirCamara(modo360){
   $("vsub").textContent = modo360 ? "Foto 360° con la cámara" : "Recorrido grabado con la cámara"; $("vcalidad").hidden = true; $("vtour").hidden = true; $("vlive").hidden = false;
   $("vliveayuda").textContent = modo360 ? "Quedate en el centro y girá despacio hacia la derecha hasta dar la vuelta completa" : "Caminá despacio y mostrá cada ambiente";
   $("vpanoprev").hidden = !modo360; $("vtip").textContent = ""; tipHasta = 0;
+  $("vnext").hidden = true; $("vcamv").hidden = false; document.querySelector(".vlivebar").hidden = false;
+  $("vstop").textContent = modo360 ? "Listo este ambiente" : "Terminar";
   const pan = modo360 ? new Panoramica(v) : null;
   // además del análisis, se guarda el video real para verlo después como recorrido
   let grab = null; const trozos = [], huecos = [];
@@ -1244,6 +1248,7 @@ async function abrirCamara(modo360){
     pararCamara();
     if (muestras.length < 4){ vstatus("Grabá al menos 2 segundos recorriendo el lugar.", "err"); return; }
     const p360 = pan ? pan.equirectangular() : null;
+    if (p360){ guardarAmbiente360(p360, muestras, dur); return; }
     await resumirMuestras(muestras, {nombre: pan ? "Grabación 360°" : "Grabación en vivo", duracion: dur, ancho: vw, alto: vh, t0: performance.now()}, null);
     VIDEO.videoUrl = videoUrl; VIDEO.huecos = huecos; pintarCalidad();
     VIDEO.consejo = (huecos.length
@@ -1253,6 +1258,79 @@ async function abrirCamara(modo360){
     $("vgo").click();   // al terminar se arma solo
   };
   $("vstop").onclick = terminar;
+}
+
+/* ----- Recorrido 360° por ambientes ----- */
+// Cada vuelta es un ambiente. Se guardan la panorámica y 2 cuadros nítidos (para que la IA lo reconozca).
+let TOUR = [];
+function guardarAmbiente360(p360, muestras, dur){
+  const conImg = muestras.filter(m => m.url), partes = [conImg.slice(0, conImg.length/2), conImg.slice(conImg.length/2)];
+  const frames = partes.filter(g => g.length).map(g => g.reduce((x, y) => y.nitidez > x.nitidez ? y : x).url);
+  TOUR.push({pano: p360, frames, dur, luz: promedio(muestras.map(m => m.luz))});
+  // pantalla entre ambientes, a pantalla completa en el celular
+  $("vlive").hidden = false; $("vcamv").hidden = true; document.querySelector(".vlivebar").hidden = true; $("vpanoprev").hidden = true;
+  $("vnext").hidden = false; $("vnextimg").src = p360.url;
+  $("vnexttxt").textContent = `✓ Ambiente ${TOUR.length} listo`;
+  $("vnextsub").textContent = p360.cerrada ? "Vuelta completa. Andá al próximo ambiente y volvé a girar desde el centro." : `Cubriste ~${p360.grados}°. Podés seguir igual o volver a grabarlo después.`;
+  $("vnextlist").innerHTML = "";
+  TOUR.forEach((_, k) => { const e = document.createElement("span"); e.textContent = "Ambiente " + (k + 1) + " ✓"; $("vnextlist").append(e); });
+}
+const promptTour = (n, porAmb) => `Te paso cuadros de ${n} ambiente${n > 1 ? "s" : ""} de una propiedad en venta o alquiler, grabados en orden. Cada ambiente se grabó girando 360° desde su centro.
+${Array.from({length: n}, (_, k) => `Ambiente ${k + 1}: cuadro${porAmb > 1 ? "s " + (k*porAmb + 1) + " y " + (k*porAmb + porAmb) : " " + (k + 1)}`).join("\n")}
+Devolvé SOLO un objeto JSON con esta forma exacta:
+{"nombre": string, "tipo_espacio": string, "resumen": string, "confianza": "baja"|"media"|"alta",
+ "ambientes": [{"nombre": string, "tipo": string, "x": number, "y": number, "ancho": number, "largo": number, "observaciones": string}],
+ "aberturas": [{"tipo": string, "orientacion": "h"|"v", "x": number, "y": number, "ancho": number}]}
+
+Reglas:
+- "ambientes" tiene EXACTAMENTE ${n} elemento${n > 1 ? "s" : ""}, en el mismo orden en que te los paso.
+- "nombre": cómo lo llamaría una inmobiliaria según lo que se ve (Living comedor, Cocina, Dormitorio principal, Baño, Oficina...). Si dos son del mismo tipo, numeralos.
+- Ubicalos en una distribución plausible, conectados entre sí por aberturas, con medidas estimadas a ojo (puerta 0,8 m, cama doble 1,4 x 1,9 m).
+- "observaciones": solo lo que se ve de verdad (piso, ventanas, luz natural, muebles, estado). Nada inventado.
+- "nombre" general: un título corto para la publicación. "resumen": una oración para un comprador.
+
+Reglas de geometría:${PROMPT_BASE.split("Reglas:")[1]}`;
+
+async function armarTour(){
+  const caps = TOUR.slice(); if (!caps.length) return;
+  const porAmb = Math.max(1, Math.min(2, Math.floor(8 / caps.length)));
+  const urls = caps.flatMap(c => { const f = c.frames.slice(0, porAmb); while (f.length < porAmb) f.push(f[0]); return f; });
+  const titulo = $("busy").querySelector("b"), tituloViejo = titulo.textContent;
+  $("busy").hidden = false; titulo.textContent = "Armando el recorrido 360°…";
+  $("busytxt").textContent = `La IA está reconociendo ${caps.length} ambiente${caps.length > 1 ? "s" : ""}.`;
+  $("vres").hidden = false; vstatus("");
+  let data = null, motivo = null;
+  try{ data = await pedirCuadros(promptTour(caps.length, porAmb), urls); }catch(e){ motivo = e && e.message; }
+  const ok = !!(data && Array.isArray(data.ambientes) && data.ambientes.length);
+  const amb = ok ? data.ambientes.slice(0, caps.length) : [];
+  // si la IA devolvió menos ambientes, se completan en fila para no perder ninguna vuelta
+  for (let k = amb.length; k < caps.length; k++){
+    const x = amb.length ? Math.max(...amb.map(a => (+a.x || 0) + (+a.ancho || 3))) : 0;
+    amb.push({nombre: "Ambiente " + (k + 1), tipo: "otro", x, y: 0, ancho: 3.5, largo: 3.5, observaciones: ""});
+  }
+  amb.forEach((a, k) => { if (!a.nombre) a.nombre = "Ambiente " + (k + 1); });
+  cargar({nombre: ok ? (data.nombre || "Recorrido 360°") : "Recorrido 360°", zona: "Estimado desde video", origen: ok ? "video" : "demo",
+          ambientes: amb, aberturas: ok ? data.aberturas || [] : []}, null);
+  // datos para la guía: lo que vio la IA en cada ambiente
+  VIDEO = {nombre: "Recorrido 360°", duracion: caps.reduce((t, c) => t + c.dur, 0), ancho: 0, alto: 0, muestras: [], tomas: caps.length, recorrido: [],
+    luz: promedio(caps.map(c => c.luz)), borrosos: 0, segundos: 0,
+    claves: caps.map((c, k) => ({t: k, url: c.frames[0], ambiente: amb[k].nombre, descripcion: String(amb[k].observaciones || "").slice(0, 200)})),
+    ia: ok ? {tipo_espacio: data.tipo_espacio || null, resumen: data.resumen || null, confianza: data.confianza || null,
+              observaciones_por_ambiente: Object.fromEntries(amb.map(a => [a.nombre, String(a.observaciones || "").slice(0, 300)]))} : null};
+  secuencia = [];
+  for (const [k, c] of caps.entries()){
+    let i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(amb[k].nombre));
+    if (i < 0) i = Math.min(k, plan.ambientes.length - 1);
+    if (await agregarFoto(i, c.pano.url, "360° del ambiente")) secuencia.push([i, fotosDe(i).length - 1]);
+  }
+  renderPanel(); actualizarBotonFotos(); setHint();
+  titulo.textContent = tituloViejo; $("busy").hidden = true;
+  vstatus(ok ? `Recorrido listo: ${caps.length} ambiente${caps.length > 1 ? "s" : ""} en 360° (${plan.ambientes.map(a => a.nombre).join(", ")}).`
+             : `No pudimos reconocer los ambientes ahora (${motivo || "sin respuesta"}); tus 360° quedaron cargados con nombres genéricos.`, ok ? "ok" : "err");
+  $("vtour").hidden = !secuencia.length;
+  guia(matchMedia("(min-width: 821px)").matches);
+  if (secuencia.length){ cerrarFotos(); verFotos(secuencia[0][0], secuencia[0][1]); }
+  stage.scrollIntoView({behavior: "smooth", block: "start"});
 }
 
 // Panorámica 360° armada en vivo: al girar sobre uno mismo, cada cuadro está corrido en horizontal respecto

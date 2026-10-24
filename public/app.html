@@ -17,15 +17,15 @@
 
   <aside class="panel">
     <section class="step hero" id="hero">
-      <h2>Cargá una propiedad con tu celular</h2>
+      <h2>Cargá una propiedad en 360°</h2>
       <ol class="pasos">
-        <li><span><b>Grabá la propiedad</b> caminando despacio por cada ambiente</span></li>
-        <li><span><b>Te avisamos</b> en el momento si falta mostrar algo</span></li>
-        <li><span><b>Tus clientes la recorren</b> y le preguntan lo que quieran, a cualquier hora</span></li>
+        <li><span><b>Parate en el centro</b> de cada ambiente y girá una vuelta con el celular</span></li>
+        <li><span><b>Te guiamos</b> en el momento y avisamos si algo sale mal</span></li>
+        <li><span><b>Tus clientes la recorren en 360°</b> y le preguntan lo que quieran</span></li>
       </ol>
-      <button class="btn grande" id="vcam" type="button"><span class="rec"></span>Grabar la propiedad</button>
+      <button class="btn grande" id="vcam360" type="button"><span class="rec"></span>Empezar el recorrido 360°</button>
       <div class="alt">
-        <button class="btn ghost" id="vcam360" type="button">◎ Foto 360°</button>
+        <button class="btn ghost" id="vcam" type="button">Grabar caminando</button>
         <label class="btn ghost" id="vdrop" for="vfile">Subir un video</label>
       </div>
       <input type="file" id="vfile" accept="video/*" hidden>
@@ -34,6 +34,14 @@
         <canvas class="vpanoprev" id="vpanoprev" width="720" height="120" hidden></canvas>
         <div class="vlivebar"><b class="vtip" id="vtip"></b><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
           <div class="vliveacts"><button class="btn ghost" id="vcancel" type="button">Cancelar</button><button class="btn" id="vstop" type="button">Terminar</button></div></div>
+        <div class="vnext" id="vnext" hidden>
+          <img id="vnextimg" alt="Vista 360° del ambiente recién grabado">
+          <b id="vnexttxt">Ambiente 1 listo</b>
+          <small id="vnextsub"></small>
+          <div class="vnextlist" id="vnextlist"></div>
+          <button class="btn grande" id="votro" type="button">＋ Grabar el siguiente ambiente</button>
+          <button class="btn ghost" id="varmar" type="button">Terminar y armar el recorrido</button>
+        </div>
       </div>
       <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>
       <div class="vres" id="vres" hidden>
@@ -118,7 +126,7 @@
     <div class="modes" role="group" aria-label="Vista">
       <button id="mMaqueta" aria-pressed="true">Maqueta</button>
       <button id="mRecorrido" aria-pressed="false">Recorrido 3D</button>
-      <button id="mFotos" aria-pressed="false" hidden>Fotos reales</button>
+      <button id="mFotos" aria-pressed="false" hidden>360° y fotos</button>
     </div>
     <div class="tools">
       <button id="solBtn" type="button" aria-expanded="false">☀ Sol y luz</button>
