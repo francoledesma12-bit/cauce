@@ -41,6 +41,8 @@ const html = `<!doctype html>
 <body>${markup.trim()}
 <script src="./vendor/three.min.js"></script>
 <script src="./vendor/OrbitControls.js"></script>
+<script src="./vendor/RoomEnvironment.js"></script>
+<script src="./vendor/RoundedBoxGeometry.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
