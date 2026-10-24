@@ -39,10 +39,12 @@
         <span>Elegir video<small id="vsub">MP4 o MOV del celular</small></span>
       </label>
       <input type="file" id="vfile" accept="video/*" hidden>
-      <button class="btn vcam" id="vcam" type="button">● Grabar con la cámara, en vivo</button>
+      <button class="btn vcam" id="vcam360" type="button">◎ Grabar en 360° (girá sobre vos)</button>
+      <button class="btn ghost vcam" id="vcam" type="button">● Grabar caminando, en vivo</button>
       <div class="vlive" id="vlive" hidden>
         <video id="vcamv" muted playsinline autoplay></video>
-        <div class="vlivebar"><span id="vlivetxt">Preparando la cámara…</span><small>Caminá despacio y mostrá cada ambiente</small>
+        <canvas class="vpanoprev" id="vpanoprev" width="720" height="120" hidden></canvas>
+        <div class="vlivebar"><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
           <div class="vliveacts"><button class="btn ghost" id="vcancel" type="button">Cancelar</button><button class="btn" id="vstop" type="button">Terminar y armar en 3D</button></div></div>
       </div>
       <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>

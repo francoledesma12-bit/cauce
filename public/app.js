@@ -1160,11 +1160,13 @@ async function resumirMuestras(muestras, meta, capturar){
 /* ----- Cámara en vivo: se analiza mientras se graba ----- */
 let cam = null;
 document.body.append($("vlive"));   // fuera del panel, para que ocupe toda la pantalla
-$("vcam").onclick = async () => {
+$("vcam").onclick = () => abrirCamara(false);
+$("vcam360").onclick = () => abrirCamara(true);
+async function abrirCamara(modo360){
   $("crear").open = true;
   $("vres").hidden = false; vstatus("");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ vstatus("Este navegador no deja usar la cámara desde la página. Usá «Elegir video».", "err"); return; }
-  try{ cam = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1280}}, audio: false}); }
+  try{ cam = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: modo360 ? 1920 : 1280}, height: {ideal: modo360 ? 1080 : 720}}, audio: false}); }
   catch(e){
     const enClaude = !!window.claude || window.top !== window;
     vstatus(enClaude
@@ -1178,7 +1180,10 @@ $("vcam").onclick = async () => {
   for (let k = 0; k < 50 && !v.videoWidth; k++) await new Promise(r => setTimeout(r, 100));
   if (!v.videoWidth){ pararCamara(); vstatus("La cámara no mandó imagen. Probá de nuevo.", "err"); return; }
   VIDEO = null; $("vgo").disabled = true; $("vframes").innerHTML = ""; $("vstats").innerHTML = ""; $("vbar").style.width = "0";
-  $("vsub").textContent = "Grabación en vivo"; $("vlive").hidden = false;
+  $("vsub").textContent = modo360 ? "Grabación 360°" : "Grabación en vivo"; $("vlive").hidden = false;
+  $("vliveayuda").textContent = modo360 ? "Quedate en el centro y girá despacio hacia la derecha hasta dar la vuelta completa" : "Caminá despacio y mostrá cada ambiente";
+  $("vpanoprev").hidden = !modo360;
+  const pan = modo360 ? new Panoramica(v) : null;
   const vw = v.videoWidth, vh = v.videoHeight, w = 96, h = Math.max(8, Math.round(96 * vh / vw));
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const cx = cv.getContext("2d", {willReadFrequently: true});
   const W = Math.min(720, vw), Hc = Math.round(W * vh / vw);
@@ -1192,23 +1197,124 @@ $("vcam").onclick = async () => {
     bx.drawImage(v, 0, 0, W, Hc); m.url = big.toDataURL("image/jpeg", 0.7);
     if (m.cambio > 0.25 && muestras.length > 1) tomasVivo++;
     muestras.push(m);
-    $("vlivetxt").textContent = `● ${mmss(t)} · ${muestras.length} cuadros · ${tomasVivo} cambio${tomasVivo > 1 ? "s" : ""} de imagen · luz ${Math.round(m.luz*100)} %`;
+    if (!pan) $("vlivetxt").textContent = `● ${mmss(t)} · ${muestras.length} cuadros · ${tomasVivo} cambio${tomasVivo > 1 ? "s" : ""} de imagen · luz ${Math.round(m.luz*100)} %`;
     if (t >= 90) terminar();
   };
   cam.timer = setInterval(tick, 500);
+  if (pan) cam.timerPano = setInterval(() => {
+    pan.paso();
+    $("vlivetxt").textContent = pan.cerrada ? "● ¡Vuelta completa! Armando el 360°…" : `● ${mmss((performance.now() - t0) / 1000)} · vuelta ${Math.min(99, Math.round(pan.avance()*100))} %`;
+    if (pan.cerrada) terminar();
+  }, 110);
   const terminar = async () => {
     if (!cam) return;
     const dur = (performance.now() - t0) / 1000;
     pararCamara();
     if (muestras.length < 4){ vstatus("Grabá al menos 2 segundos recorriendo el lugar.", "err"); return; }
-    await resumirMuestras(muestras, {nombre: "Grabación en vivo", duracion: dur, ancho: vw, alto: vh, t0: performance.now()}, null);
+    const p360 = pan ? pan.equirectangular() : null;
+    await resumirMuestras(muestras, {nombre: pan ? "Grabación 360°" : "Grabación en vivo", duracion: dur, ancho: vw, alto: vh, t0: performance.now()}, null);
+    if (p360){ VIDEO.pano = p360; vstatus(`360° armado: ${p360.ancho}×${p360.alto} px, ${p360.cerrada ? "vuelta completa" : "cubre ~" + p360.grados + "° (no llegaste a la vuelta entera)"}.`, "ok"); }
     $("vgo").click();   // al terminar se arma solo
   };
   $("vstop").onclick = terminar;
-};
+}
+
+// Panorámica 360° armada en vivo: al girar sobre uno mismo, cada cuadro está corrido en horizontal respecto
+// del anterior. Se mide ese corrimiento comparando versiones chicas en gris y se pega la franja central nueva
+// de cada cuadro (técnica de "franjas"). Cuando la imagen vuelve a parecerse al primer cuadro, la vuelta se cerró.
+class Panoramica {
+  constructor(v){
+    this.v = v; const vw = v.videoWidth, vh = v.videoHeight;
+    this.hfov = vw > vh ? 63 : 45;                      // ángulo típico de la cámara principal del celular
+    const k = 1.5 * (vw / vh) * 360 / this.hfov;
+    this.PH = Math.round(Math.min(1280, vh, Math.sqrt(13e6 / k)));
+    this.FW = Math.round(this.PH * vw / vh);
+    this.est = this.FW * 360 / this.hfov;                // ancho estimado de la vuelta completa
+    this.c = document.createElement("canvas"); this.c.width = Math.min(16000, Math.ceil(this.est * 1.45)); this.c.height = this.PH;
+    this.g = this.c.getContext("2d"); this.off = Math.round(this.c.width * 0.12);   // se gira hacia la derecha: casi todo el lienzo queda a ese lado
+    this.sw = 128; this.sh = Math.round(128 * vh / vw);
+    this.sc = document.createElement("canvas"); this.sc.width = this.sw; this.sc.height = this.sh;
+    this.sx = this.sc.getContext("2d", {willReadFrequently: true});
+    this.X = 0; this.d = 0; this.min = 0; this.max = this.FW; this.prev = null; this.primero = null; this.cerrada = false; this.errores = [];
+    this.prevCanvas = $("vpanoprev"); this.pg = this.prevCanvas.getContext("2d");
+  }
+  gris(){
+    this.sx.drawImage(this.v, 0, 0, this.sw, this.sh);
+    const px = this.sx.getImageData(0, 0, this.sw, this.sh).data, n = this.sw * this.sh, out = new Float32Array(n);
+    let s = 0; for (let i = 0, p = 0; i < n; i++, p += 4){ out[i] = 0.299*px[p] + 0.587*px[p+1] + 0.114*px[p+2]; s += out[i]; }
+    s /= n; for (let i = 0; i < n; i++) out[i] -= s;     // sin el brillo general: tolera cambios de exposición
+    return out;
+  }
+  // corrimiento d tal que cur(x) ≈ ref(x + d), buscando entre d0-r y d0+r
+  corrimiento(ref, cur, d0, r){
+    const w = this.sw, h = this.sh; let best = 0, err = Infinity;
+    for (let d = Math.round(d0) - r; d <= Math.round(d0) + r; d++){
+      if (Math.abs(d) > w * 0.45) continue;
+      let e = 0, c = 0;
+      const x0 = Math.max(0, -d), x1 = Math.min(w, w - d);
+      for (let y = Math.floor(h*0.15); y < h*0.85; y += 2){ const fila = y*w;
+        for (let x = x0; x < x1; x += 2){ e += Math.abs(cur[fila + x] - ref[fila + x + d]); c++; } }
+      e /= Math.max(1, c);
+      if (e < err){ err = e; best = d; }
+    }
+    return {d: best, err};
+  }
+  paso(){
+    if (this.cerrada) return;
+    const cur = this.gris();
+    if (!this.prev){ this.prev = this.primero = cur; this.g.drawImage(this.v, this.off, 0, this.FW, this.PH); this.dibujarPrevia(); return; }
+    const {d, err} = this.corrimiento(this.prev, cur, this.d, 22);
+    if (Math.abs(d) < 1) return;                          // quieto: se espera a que gire
+    this.errores.push(err); this.d = d;
+    const D = d * this.FW / this.sw, Xp = this.X; this.X += D;
+    // franja nueva: entre el centro del cuadro anterior y el centro del actual (con 2 px de solape)
+    const a = this.FW/2 - Math.max(D, 0) - 1, ancho = Math.abs(D) + 2;
+    const dest = this.off + Math.min(Xp, this.X) + this.FW/2 - 1;
+    const sx = a * this.v.videoWidth / this.FW, sw = ancho * this.v.videoWidth / this.FW;
+    if (dest > 0 && dest + ancho < this.c.width) this.g.drawImage(this.v, sx, 0, sw, this.v.videoHeight, dest, 0, ancho, this.PH);
+    this.min = Math.min(this.min, this.X + this.FW/2); this.max = Math.max(this.max, this.X + this.FW/2);
+    this.prev = cur;
+    // ¿volvimos al principio? se compara con el primer cuadro cuando ya se giró bastante
+    if (Math.abs(this.X) > this.est * 0.8){
+      const tipico = this.errores.slice().sort((p, q) => p - q)[Math.floor(this.errores.length/2)];
+      const vuelta = this.corrimiento(this.primero, cur, 0, Math.round(this.sw * 0.4));
+      if (vuelta.err < tipico * 1.25){ this.cerrada = true; this.ancho360 = Math.round(Math.abs(this.X - vuelta.d * this.FW / this.sw)); }
+    }
+    if (this.off + this.X + this.FW > this.c.width - 4 || this.off + this.X < 4) this.cerrada = true;   // se terminó el lienzo
+    this.dibujarPrevia();
+  }
+  avance(){ return Math.abs(this.X) / this.est; }
+  dibujarPrevia(){
+    const pc = this.prevCanvas, x0 = this.off + this.min, w = this.max - this.min;
+    this.pg.fillStyle = "#000"; this.pg.fillRect(0, 0, pc.width, pc.height);
+    const esc = Math.min(pc.width / Math.max(w, this.est), pc.height / this.PH);
+    this.pg.drawImage(this.c, x0, 0, w, this.PH, 0, (pc.height - this.PH*esc)/2, w*esc, this.PH*esc);
+  }
+  // equirectangular 2:1 para el visor 360: la banda filmada al medio, arriba y abajo se estira el borde y se funde
+  equirectangular(){
+    const cubierto = this.max - this.min;
+    const ancho360 = this.ancho360 && this.ancho360 > this.FW ? this.ancho360 : Math.max(cubierto, this.est);
+    const maxTex = Math.min(8192, (renderer.capabilities && renderer.capabilities.maxTextureSize) || 4096);
+    const W = Math.min(maxTex, Math.round(ancho360)), esc = W / ancho360, H = Math.round(W / 2);
+    const vfov = 2 * Math.atan(Math.tan(this.hfov * Math.PI / 360) * this.PH / this.FW) * 180 / Math.PI;
+    const banda = Math.round(H * vfov / 180), y0 = Math.round((H - banda) / 2);
+    const o = document.createElement("canvas"); o.width = W; o.height = H; const g = o.getContext("2d");
+    g.fillStyle = "#2a2a2a"; g.fillRect(0, 0, W, H);
+    const usar = Math.min(cubierto, ancho360), x0 = this.off + this.min + (this.ancho360 ? (cubierto - usar) / 2 : 0);
+    g.drawImage(this.c, x0, 0, usar, this.PH, 0, y0, usar * esc, banda);
+    // techo y piso: la banda reflejada (como un espejo) y oscurecida hacia los polos, sin rayas
+    const refl = Math.min(y0, banda), fr = refl / banda * this.PH;
+    g.save(); g.translate(0, y0); g.scale(1, -1); g.drawImage(this.c, x0, 0, usar, fr, 0, 0, usar * esc, refl); g.restore();
+    g.save(); g.translate(0, y0 + banda); g.scale(1, -1); g.drawImage(this.c, x0, this.PH - fr, usar, fr, 0, -refl, usar * esc, refl); g.restore();
+    const fade = (ya, yb, hacia) => { const gr = g.createLinearGradient(0, ya, 0, yb);
+      gr.addColorStop(hacia ? 0 : 1, "rgba(20,20,20,1)"); gr.addColorStop(.5, "rgba(20,20,20,.8)"); gr.addColorStop(hacia ? 1 : 0, "rgba(20,20,20,.25)"); g.fillStyle = gr; g.fillRect(0, ya, W, yb - ya); };
+    fade(0, y0, true); fade(y0 + banda, H, false);
+    return {url: o.toDataURL("image/jpeg", 0.9), ancho: W, alto: H, cerrada: !!this.ancho360, grados: Math.round(Math.min(360, cubierto / this.FW * this.hfov))};
+  }
+}
 function pararCamara(){
   if (!cam) return;
-  clearInterval(cam.timer); cam.getTracks().forEach(t => t.stop()); cam = null;
+  clearInterval(cam.timer); clearInterval(cam.timerPano); cam.getTracks().forEach(t => t.stop()); cam = null;
   $("vcamv").srcObject = null; $("vlive").hidden = true;
 }
 $("vcancel").onclick = () => { pararCamara(); vstatus("Grabación cancelada."); };
@@ -1321,6 +1427,11 @@ $("vgo").onclick = async () => {
   for (const r of v.recorrido){
     const c = v.claves.reduce((x, y) => Math.abs(y.t - r.t) < Math.abs(x.t - r.t) ? y : x);
     if (await agregarFoto(c.i, r.url, "Video " + mmss(r.t))) secuencia.push([c.i, fotosDe(c.i).length - 1]);
+  }
+  // con 360°, el recorrido abre directo la panorámica (visor esférico: arrastrar para mirar alrededor)
+  if (v.pano){
+    const i = v.claves.length ? v.claves[Math.floor(v.claves.length/2)].i : 0;
+    if (await agregarFoto(i, v.pano.url, "360° del video")){ FOTOS[i].unshift(FOTOS[i].pop()); secuencia = [[i, 0]]; }
   }
   renderPanel(); actualizarBotonFotos(); setHint();
   titulo.textContent = tituloViejo; $("busy").hidden = true; $("vgo").disabled = false;
