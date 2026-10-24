@@ -918,7 +918,27 @@ function updateChips(){
   $("chips").childNodes.forEach(b => b.setAttribute("aria-current", +b.dataset.i === r));
 }
 
+let tecnotecaActiva = false;
+function cerrarTecnoteca(){tecnotecaActiva=false;document.body.classList.remove("tecnoteca-activa");$("tecnotecaView").hidden=true;}
+function abrirTecnoteca(){
+  tecnotecaActiva=true;document.body.classList.remove("gestion");document.body.classList.add("tecnoteca-activa");
+  $("vplay").pause();$("tecnotecaView").hidden=false;
+  if (!$("tecnotecaFrame").getAttribute("src")) $("tecnotecaFrame").src="./tecnoteca-360.html?embed=1";
+  $("recorridoSelect").value="tecnoteca";
+  document.querySelectorAll(".preset").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k==="tecnoteca"));
+  try{history.replaceState(null,"","#tecnoteca");}catch(_){}
+}
+function elegirRecorrido(key){
+  if(key==="tecnoteca"){abrirTecnoteca();return;}
+  if(!PRESETS[key])return;
+  document.body.classList.remove("gestion");cargar(PRESETS[key],key);
+  try{history.replaceState(null,"","#"+key+"-360");}catch(_){}
+}
+$("recorridoSelect").onchange=e=>elegirRecorrido(e.target.value);
+$("crearPropiedad").onclick=()=>{cerrarTecnoteca();document.body.classList.toggle("gestion");if(document.body.classList.contains("gestion"))$("hero").scrollIntoView({block:"start",behavior:"smooth"});};
 function cargar(raw, key){
+  cerrarTecnoteca();
+  if(key)$("recorridoSelect").value=key;
   $("vtourv").hidden = true; $("vplay").pause();
   FOTOS = {}; planKey = key || null; cerrarFotos();
   plan = normalizar(raw);
@@ -940,9 +960,12 @@ function renderPresets(){
     b.innerHTML = `<span><b></b><small></small></span><span class="m">${Math.round(m2)} m²</span>`;
     b.querySelector("b").textContent = p.nombre.split(" · ")[1] || p.nombre;
     b.querySelector("small").textContent = (p.nombre.split(" · ")[0]) + " · " + p.zona;
-    b.onclick = () => { cargar(p, k); try{ history.replaceState(null, "", "#" + k); }catch(_){} };
+    b.onclick = () => elegirRecorrido(k);
     box.append(b);
   });
+  const tec=document.createElement("button");tec.className="preset tecnoteca-preset";tec.dataset.k="tecnoteca";
+  tec.innerHTML='<span><b>Tecnoteca</b><small>Captura real del hackatón · panorama parcial</small></span><span class="m">360°</span>';
+  tec.onclick=abrirTecnoteca;box.append(tec);
 }
 
 $("mMaqueta").onclick = () => { cerrarFotos(); mode !== "maqueta" && setMode("maqueta"); };
@@ -2024,7 +2047,7 @@ async function cargarFotosDemo(key){
       const i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(nombre)); if (i < 0) continue;
       for (const e of lista){ const f = typeof e === "string" ? e : e.f; await agregarFoto(i, `./assets/fotos/${key}/${f}`, f, true, e.caja || null); }
     }
-    if (planKey === key){ renderPanel(); actualizarBotonFotos(); setHint(); }
+    if (planKey === key && !tecnotecaActiva){ renderPanel(); actualizarBotonFotos(); setHint(); if(!document.body.classList.contains("gestion") && !$("mFotos").hidden) $("mFotos").click(); }
   }catch(_){}
 }
 $("fotosIn").addEventListener("change", e => subirFotos([...e.target.files]));
@@ -2287,11 +2310,12 @@ async function planDesdeLink(h){
   return expandir(JSON.parse(new TextDecoder().decode(bytes)));
 }
 async function abrirCompartir(){
-  const link = await linkDelPlano();
+  const link = tecnotecaActiva ? location.href.split("#")[0]+"#tecnoteca" : await linkDelPlano();
   $("mLink").value = link;
   const tot = plan.ambientes.reduce((t, a) => t + a.ancho*a.largo, 0);
   const dorm = plan.ambientes.filter(a => a.tipo === "dormitorio").length;
   $("mMsg").value = `${plan.nombre}${plan.zona ? " · " + plan.zona : ""}\n${fmt(tot)} m² · ${plan.ambientes.length} ambientes${dorm ? " · " + dorm + " dormitorio" + (dorm > 1 ? "s" : "") : ""}\nRecorrela por dentro, mirá las fotos y preguntale lo que quieras a la guía:\n${link}`;
+  if(tecnotecaActiva) $("mMsg").value="Tecnoteca · panorama experimental del hackatón, cobertura parcial\n"+link;
   const box = $("qr"); box.innerHTML = "";
   try{
     const q = qrcode(0, link.length > 600 ? "L" : "M"); q.addData(link); q.make();
@@ -2301,6 +2325,7 @@ async function abrirCompartir(){
   $("mNota").textContent = enClaude
     ? "Estás en la vista previa: el link y el QR sirven desde la versión publicada (andromedaweb.store/cauce/app.html)."
     : "El plano viaja dentro del link: no hace falta cuenta ni base de datos. Imprimí el QR en el cartel o mandalo por WhatsApp.";
+  if(tecnotecaActiva) $("mNota").textContent="Este enlace abre Tecnoteca dentro del mismo explorador de Habita 3D. Panorama parcial, con uniones visibles.";
   $("modal").hidden = false; $("mCopyLink").focus();
 }
 async function copiar(txt, btn){
@@ -2332,6 +2357,7 @@ function frame(now){
   }
   cutPlane.constant += (cutTarget - cutPlane.constant) * Math.min(1, dt*6);
   if (mode === "maqueta" && !tweens.length) controls.update();
+  if(tecnotecaActiva){requestAnimationFrame(frame);return;}
   walk(dt);
   placeLabels(); updateChips();
   if ($("fotos").hidden) renderer.render(scene, camera);
@@ -2340,7 +2366,7 @@ function frame(now){
 }
 
 renderPresets();
-const rawStart = (location.hash || "").slice(1);
+const rawStart = (location.hash || "#montevideo-360").slice(1);
 const auto360 = /-360$/.test(rawStart);
 const start = rawStart.replace(/-360$/, "");
 // #montevideo-360: abre directo el recorrido 360° con fotos reales (para la demo)
@@ -2351,6 +2377,7 @@ cargar(PRESETS[k0], k0);
 if (start.startsWith("p=")) planDesdeLink(start).then(p => { cargar(p, null); status("Plano abierto desde un link compartido.", "ok"); }).catch(() => status("El link del plano está incompleto o dañado.", "err"));
 if (start.startsWith("r=")) abrirRecorrido(start.slice(2));
 listarGrabados();
+if(start==="tecnoteca")abrirTecnoteca();
 cargarRecursos();
 requestAnimationFrame(frame);
 })();

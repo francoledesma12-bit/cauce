@@ -11,6 +11,8 @@
     <a class="brand" href="./" aria-label="Habita 3D, inicio"><span class="mark">h</span>habita<span class="b3d">3D</span></a>
     <span class="tag">Recorridos virtuales para inmobiliarias</span>
     <span class="sp"></span>
+    <select id="recorridoSelect" class="selector-recorrido" aria-label="Elegir recorrido"><option value="montevideo">Montevideo · 360° y fotos</option><option value="sarmiento">Sarmiento · 360° y fotos</option><option value="tecnoteca">Tecnoteca · captura del hackatón</option><option value="astra">Maqueta de ejemplo</option></select>
+    <button class="btn ghost" id="crearPropiedad" type="button">Crear propiedad</button>
     <nav class="feats" aria-label="Qué incluye"><span>Fotos reales</span><span>Recorrido 360°</span><span>Grabado con el celular</span><span><i>IA</i>Chat en lenguaje natural</span></nav>
     <button class="share-btn" id="share" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z" stroke="currentColor" stroke-width="1.8"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z" fill="currentColor"/></svg>Compartir</button>
   </header>
@@ -77,7 +79,7 @@
       <div class="presets" id="presets"></div>
     </section>
 
-    <section class="step">
+    <section class="step rooms-section">
       <div class="rooms-head"><h2><span class="n">02</span>Ambientes</h2><span class="total" id="total"></span></div>
       <p class="help">Tocá un ambiente para entrar.</p>
       <ul class="rooms" id="rooms"></ul>
@@ -111,6 +113,7 @@
   </aside>
 
   <main class="stage" id="stage">
+    <div id="tecnotecaView" hidden><iframe id="tecnotecaFrame" title="Tecnoteca: panoramas reales del hackatón" allow="fullscreen" allowfullscreen></iframe></div>
     <canvas id="gl"></canvas>
     <div class="labels" id="labels"></div>
     <div class="vtourv" id="vtourv" hidden>
