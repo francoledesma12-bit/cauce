@@ -139,6 +139,12 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Cambio:** mensajes de error específicos (dentro de Claude, permiso bloqueado, sin cámara). Sin cambios en la lógica de Franco.
 - **Observación:** la IA puede devolver ambientes superpuestos o coordenadas negativas; la app los normaliza pero la maqueta puede quedar con paredes cruzadas. Pendiente: validar superposiciones antes de construir.
 
+## 2026-10-24 ~15:55 · Claude (con Cande) · Pulido de UX
+- La guía de IA arranca cerrada (botón "IA · Preguntale a la propiedad"); se sigue abriendo sola después de grabar un video.
+- La ayuda "Arrastrá para girar…" se retira sola a los 7 s o al primer toque.
+- En compu se ocultan los chips de abajo (repetían la lista de Ambientes del panel); en el celular siguen.
+- No toqué el flujo 360°/video de Franco.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

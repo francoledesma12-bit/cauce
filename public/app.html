@@ -99,7 +99,7 @@
     </details>
   </aside>
 
-  <main class="stage g-open" id="stage">
+  <main class="stage" id="stage">
     <canvas id="gl"></canvas>
     <div class="labels" id="labels"></div>
     <div class="vtourv" id="vtourv" hidden>
@@ -141,13 +141,13 @@
     <div class="vbadge" id="vbadge" hidden></div>
     <div class="hint" id="hint">Arrastrá para girar · tocá un ambiente para entrar</div>
     <div class="chips" id="chips"></div>
-    <section class="guide" id="guide" aria-label="Guía de la propiedad">
+    <section class="guide" id="guide" aria-label="Guía de la propiedad" hidden>
       <header><b>Preguntale a la propiedad</b><span class="ia">IA</span><button id="gClose" aria-label="Cerrar la guía">×</button></header>
       <div class="msgs" id="msgs" aria-live="polite"></div>
       <div class="sugs" id="sugs"></div>
       <form id="gForm"><input id="gIn" autocomplete="off" placeholder="Ej.: ¿entra un sillón de 2,20 m?" aria-label="Tu pregunta"><button class="btn" id="gSend">Preguntar</button></form>
     </section>
-    <button class="gfab" id="gOpen" hidden>Preguntale a la propiedad</button>
+    <button class="gfab" id="gOpen"><span class="ia">IA</span>Preguntale a la propiedad</button>
     <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
       <div class="card">
         <h3 id="mTitle">Compartir la propiedad</h3>

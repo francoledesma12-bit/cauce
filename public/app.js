@@ -852,8 +852,10 @@ const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString("es-AR", {minimumFractionDigits:1, maximumFractionDigits:1});
 let currentRoom = -1;
 
+let hintT = 0;
 function setHint(){
-  $("hint").textContent = mode === "maqueta"
+  const h = $("hint"); h.classList.remove("used"); clearTimeout(hintT); hintT = setTimeout(() => h.classList.add("used"), 7000);
+  h.textContent = mode === "maqueta"
     ? (Object.values(FOTOS).some(l => l.length) ? "Tocá un ambiente para ver sus fotos reales" : "Arrastrá para girar · tocá un ambiente para entrar")
     : "Arrastrá para mirar · tocá el piso para caminar · WASD en compu";
 }
@@ -1890,7 +1892,8 @@ function guia(open){
 }
 $("gClose").onclick = () => guia(false);
 $("gOpen").onclick = () => guia(true);
-if (matchMedia("(max-width: 820px)").matches) guia(false);
+canvas.addEventListener("pointerdown", () => $("hint").classList.add("used"));
+guia(false);
 try{ matchMedia("(max-width: 820px)").addEventListener("change", e => { if (e.matches) guia(false); }); }catch(_){}
 
 

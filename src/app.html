@@ -287,6 +287,12 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 .spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--blue-soft);border-top-color:var(--blue);margin:0 auto;animation:sp 0.9s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){.spin{animation:none}}
+/* Pulido: la ayuda se retira sola, la guía arranca cerrada y en compu los ambientes viven en el panel */
+.hint{transition:opacity .5s ease}
+.hint.used{opacity:0}
+.gfab{display:inline-flex;align-items:center;gap:8px}
+.gfab .ia{font-size:10.5px;font-weight:700;letter-spacing:.06em;background:rgba(255,255,255,.22);padding:2px 6px;border-radius:6px}
+@media (min-width:821px){.chips{display:none}.hint{bottom:18px}}
 
 @media (max-width:820px){
   .app{grid-template-columns:1fr;grid-template-rows:auto 58vh auto;height:auto;min-height:100%}
@@ -394,7 +400,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
     </details>
   </aside>
 
-  <main class="stage g-open" id="stage">
+  <main class="stage" id="stage">
     <canvas id="gl"></canvas>
     <div class="labels" id="labels"></div>
     <div class="vtourv" id="vtourv" hidden>
@@ -436,13 +442,13 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
     <div class="vbadge" id="vbadge" hidden></div>
     <div class="hint" id="hint">Arrastrá para girar · tocá un ambiente para entrar</div>
     <div class="chips" id="chips"></div>
-    <section class="guide" id="guide" aria-label="Guía de la propiedad">
+    <section class="guide" id="guide" aria-label="Guía de la propiedad" hidden>
       <header><b>Preguntale a la propiedad</b><span class="ia">IA</span><button id="gClose" aria-label="Cerrar la guía">×</button></header>
       <div class="msgs" id="msgs" aria-live="polite"></div>
       <div class="sugs" id="sugs"></div>
       <form id="gForm"><input id="gIn" autocomplete="off" placeholder="Ej.: ¿entra un sillón de 2,20 m?" aria-label="Tu pregunta"><button class="btn" id="gSend">Preguntar</button></form>
     </section>
-    <button class="gfab" id="gOpen" hidden>Preguntale a la propiedad</button>
+    <button class="gfab" id="gOpen"><span class="ia">IA</span>Preguntale a la propiedad</button>
     <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
       <div class="card">
         <h3 id="mTitle">Compartir la propiedad</h3>
@@ -1327,8 +1333,10 @@ const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString("es-AR", {minimumFractionDigits:1, maximumFractionDigits:1});
 let currentRoom = -1;
 
+let hintT = 0;
 function setHint(){
-  $("hint").textContent = mode === "maqueta"
+  const h = $("hint"); h.classList.remove("used"); clearTimeout(hintT); hintT = setTimeout(() => h.classList.add("used"), 7000);
+  h.textContent = mode === "maqueta"
     ? (Object.values(FOTOS).some(l => l.length) ? "Tocá un ambiente para ver sus fotos reales" : "Arrastrá para girar · tocá un ambiente para entrar")
     : "Arrastrá para mirar · tocá el piso para caminar · WASD en compu";
 }
@@ -2365,7 +2373,8 @@ function guia(open){
 }
 $("gClose").onclick = () => guia(false);
 $("gOpen").onclick = () => guia(true);
-if (matchMedia("(max-width: 820px)").matches) guia(false);
+canvas.addEventListener("pointerdown", () => $("hint").classList.add("used"));
+guia(false);
 try{ matchMedia("(max-width: 820px)").addEventListener("change", e => { if (e.matches) guia(false); }); }catch(_){}
 
 
