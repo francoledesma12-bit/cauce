@@ -48,7 +48,7 @@
 
 ## Demo
 
-- **Aplicación en vivo:** _a completar_
+- **Base del proyecto en el VPS:** [andromedaweb.store/cauce/](https://andromedaweb.store/cauce/)
 - **Video:** _a completar_
 - **Presentación:** [docs/pitch.md](docs/pitch.md)
 
@@ -65,9 +65,12 @@
 ```bash
 git clone https://github.com/francoledesma12-bit/cauce.git
 cd cauce
+npm start
 ```
 
-> _A completar con los pasos para instalar y levantar el proyecto._
+Requiere Node.js 22. Abrí http://127.0.0.1:8797/cauce/. Esta base no necesita instalar dependencias. La generación desde planos todavía está pendiente.
+
+Los cambios en `main` se publican en el VPS. Consultá [cómo funciona el despliegue](docs/despliegue.md) antes de agregar dependencias o una compilación.
 
 ## Equipo
 
