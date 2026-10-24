@@ -17,13 +17,33 @@
 
   <aside class="panel">
     <section class="step">
-      <h2><span class="n">01</span>Elegí o subí un plano</h2>
+      <h2><span class="n">01</span>Subí un video del espacio</h2>
+      <p class="help">Recorré el lugar con el celular (10 a 90 s). El video se analiza acá, en tu navegador.</p>
+      <label class="drop" id="vdrop" for="vfile">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 10l5-3v10l-5-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>Elegir video<small id="vsub">MP4 o MOV del celular</small></span>
+      </label>
+      <input type="file" id="vfile" accept="video/*" hidden>
+      <video id="vsrc" muted playsinline preload="auto" hidden></video>
+      <div class="vres" id="vres" hidden>
+        <div class="vprog"><i id="vbar"></i></div>
+        <dl class="vstats" id="vstats"></dl>
+        <canvas class="vchart" id="vchart" width="560" height="90" aria-label="Luz y cambios de toma a lo largo del video"></canvas>
+        <p class="vleg"><span class="l1">luz</span><span class="l2">cambio de imagen</span><span class="l3">toma nueva</span></p>
+        <div class="vframes" id="vframes"></div>
+        <button class="btn" id="vgo" disabled>Armar el espacio en 3D</button>
+        <div class="status" id="vstatus" role="status"></div>
+      </div>
+    </section>
+
+    <section class="step">
+      <h2><span class="n">02</span>Elegí o subí un plano</h2>
       <p class="help">Probá con una propiedad de ejemplo o dejá que la IA lea tu plano.</p>
       <div class="presets" id="presets"></div>
     </section>
 
     <section class="step">
-      <h2><span class="n">02</span>Leer un plano con IA</h2>
+      <h2><span class="n">03</span>Leer un plano con IA</h2>
       <div class="ai">
         <label class="drop" id="drop" for="file">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h7v9M10 12V3M14 12h7M14 12v4" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -38,7 +58,7 @@
     </section>
 
     <section class="step">
-      <div class="rooms-head"><h2><span class="n">03</span>Ambientes</h2><span class="total" id="total"></span></div>
+      <div class="rooms-head"><h2><span class="n">04</span>Ambientes</h2><span class="total" id="total"></span></div>
       <p class="help">Tocá un ambiente para recorrerlo.</p>
       <ul class="rooms" id="rooms"></ul>
       <label class="fotodrop" id="fotodrop" for="fotosIn">
@@ -78,6 +98,7 @@
       <button id="cut">Ver paredes completas</button>
     </div>
     <div class="title3d" id="title3d"></div>
+    <div class="vbadge" id="vbadge" hidden></div>
     <div class="hint" id="hint">Arrastrá para girar · tocá un ambiente para entrar</div>
     <div class="chips" id="chips"></div>
     <section class="guide" id="guide" aria-label="Guía de la propiedad">

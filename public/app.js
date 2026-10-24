@@ -100,7 +100,8 @@ function normalizar(raw){
   }).filter(Boolean);
 
   const norte = ["arriba","abajo","izquierda","derecha"].includes(raw.norte) ? raw.norte : "arriba";
-  return {nombre: String(raw.nombre || "Plano sin nombre").slice(0, 60), zona: raw.zona || "", norte, ambientes: amb, aberturas: ab};
+  return {nombre: String(raw.nombre || "Plano sin nombre").slice(0, 60), zona: raw.zona || "", norte, ambientes: amb, aberturas: ab,
+          origen: ["video", "demo"].includes(raw.origen) ? raw.origen : null};
 }
 
 /* ===================== Escena 3D ===================== */
@@ -872,6 +873,10 @@ function renderPanel(){
   });
   $("total").textContent = fmt(total) + " m² totales";
   $("title3d").textContent = plan.nombre;
+  const vb = $("vbadge"); vb.hidden = !plan.origen;
+  vb.className = "vbadge" + (plan.origen === "demo" ? " demo" : "");
+  vb.textContent = plan.origen === "video" ? "Distribución estimada por IA a partir de tu video · no es una medición"
+    : plan.origen === "demo" ? "Escena de demostración: no es tu espacio. Las fotos sí son cuadros de tu video" : "";
 
   const chips = $("chips"); chips.innerHTML = "";
   plan.ambientes.forEach((a, i) => {
@@ -1031,6 +1036,220 @@ $("read").onclick = async () => {
 };
 
 
+/* ===================== Video del espacio: análisis real en el navegador ===================== */
+// El video no sale de la compu: se recorre cuadro por cuadro en un canvas y se miden luz, nitidez y cambios de toma.
+// Solo los cuadros clave (achicados) viajan a la IA, que estima ambientes y medidas. No es una reconstrucción medida.
+let VIDEO = null;
+const vEl = $("vsrc");
+const vstatus = (t, cls = "") => { const s = $("vstatus"); s.textContent = t; s.className = "status " + cls; };
+const mmss = t => Math.floor(t/60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+const promedio = l => l.reduce((s, v) => s + v, 0) / Math.max(1, l.length);
+const evento = (el, ev, ms = 8000) => new Promise((ok, ko) => {
+  const quitar = () => { clearTimeout(t); el.removeEventListener(ev, fin); el.removeEventListener("error", fin); };
+  const fin = e => { quitar(); e.type === "error" ? ko(new Error("video")) : ok(); };
+  const t = setTimeout(() => { quitar(); ko(new Error("timeout")); }, ms);
+  el.addEventListener(ev, fin); el.addEventListener("error", fin);
+});
+async function irAlSegundo(t){ const p = evento(vEl, "seeked"); vEl.currentTime = t; await p; }
+
+function medir(px, w, h){
+  const N = w*h, gris = new Float32Array(N), hist = new Float32Array(48);
+  let luz = 0;
+  for (let i = 0, p = 0; i < N; i++, p += 4){
+    const r = px[p], g = px[p+1], b = px[p+2];
+    gris[i] = 0.299*r + 0.587*g + 0.114*b; luz += gris[i];
+    hist[r >> 4]++; hist[16 + (g >> 4)]++; hist[32 + (b >> 4)]++;
+  }
+  for (let k = 0; k < 48; k++) hist[k] /= N;
+  // nitidez: varianza del laplaciano (cuadro movido = valor bajo)
+  let s = 0, s2 = 0, c = 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++){
+    const i = y*w + x, L = 4*gris[i] - gris[i-1] - gris[i+1] - gris[i-w] - gris[i+w];
+    s += L; s2 += L*L; c++;
+  }
+  return {luz: luz / N / 255, nitidez: c ? s2/c - (s/c)**2 : 0, hist};
+}
+const distancia = (a, b) => { let d = 0; for (let k = 0; k < 48; k++) d += Math.abs(a[k] - b[k]); return d / 6; };
+
+async function analizarVideo(file){
+  if (!file || !/^video\//.test(file.type)){ $("vres").hidden = false; vstatus("Elegí un archivo de video (MP4 o MOV).", "err"); return; }
+  VIDEO = null;
+  $("vres").hidden = false; $("vgo").disabled = true; $("vframes").innerHTML = ""; $("vstats").innerHTML = "";
+  $("vbar").style.width = "0"; $("vsub").textContent = file.name; vstatus("Abriendo el video…");
+  if (vEl.src) URL.revokeObjectURL(vEl.src);
+  vEl.src = URL.createObjectURL(file);
+  try{ await evento(vEl, "loadeddata", 20000); }
+  catch(_){ vstatus("Este navegador no puede abrir ese video. Probá con un MP4 (en iPhone: Ajustes › Cámara › Formatos › Más compatible).", "err"); return; }
+  const dur = vEl.duration, vw = vEl.videoWidth, vh = vEl.videoHeight;
+  if (!isFinite(dur) || dur <= 0 || !vw){ vstatus("No pude leer la duración del video.", "err"); return; }
+  const t0 = performance.now();
+  const n = Math.max(8, Math.min(48, Math.round(dur * 2)));
+  const w = 96, h = Math.max(8, Math.round(96 * vh / vw));
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const cx = cv.getContext("2d", {willReadFrequently:true});
+  const muestras = [];
+  for (let k = 0; k < n; k++){
+    const t = Math.min(dur - 0.05, (k + 0.5) * dur / n);
+    try{ await irAlSegundo(t); }catch(_){ continue; }
+    cx.drawImage(vEl, 0, 0, w, h);
+    const m = medir(cx.getImageData(0, 0, w, h).data, w, h);
+    m.t = t; m.cambio = muestras.length ? distancia(m.hist, muestras[muestras.length - 1].hist) : 0;
+    muestras.push(m);
+    $("vbar").style.width = Math.round((k + 1) / n * 80) + "%";
+    vstatus(`Analizando cuadro ${k + 1} de ${n}…`);
+  }
+  if (muestras.length < 3){ vstatus("No pude recorrer el video. Probá con otro archivo.", "err"); return; }
+
+  // tomas: hay corte donde el cambio de imagen supera la media + 1,2 desvíos
+  const cs = muestras.slice(1).map(m => m.cambio), media = promedio(cs);
+  const sd = Math.sqrt(promedio(cs.map(c => (c - media)**2)));
+  const umbral = Math.max(0.18, media + 1.2*sd);
+  const tomas = [[muestras[0]]];
+  muestras.slice(1).forEach(m => {
+    if (m.cambio > umbral && tomas[tomas.length - 1].length >= 2){ m.corte = true; tomas.push([m]); }
+    else tomas[tomas.length - 1].push(m);
+  });
+  // para elegir cuadros clave: si hay pocas tomas en un video largo, se parte en tramos parejos para no perder ambientes
+  let grupos = tomas;
+  const partes = Math.min(6, Math.max(3, Math.round(dur / 6)));
+  if (grupos.length < partes){ grupos = []; for (let p = 0; p < partes; p++) grupos.push(muestras.slice(Math.floor(p*muestras.length/partes), Math.floor((p+1)*muestras.length/partes))); }
+  grupos = grupos.filter(g => g.length).sort((a, b) => b.length - a.length).slice(0, 6).sort((a, b) => a[0].t - b[0].t);
+  const elegidos = grupos.map(g => { const ok = g.filter(m => m.luz > 0.08 && m.luz < 0.95); return (ok.length ? ok : g).reduce((x, y) => y.nitidez > x.nitidez ? y : x); });
+
+  const W = Math.min(640, vw), Hc = Math.round(W * vh / vw);
+  const big = document.createElement("canvas"); big.width = W; big.height = Hc;
+  const bx = big.getContext("2d");
+  const claves = [];
+  for (const [j, m] of elegidos.entries()){
+    try{ await irAlSegundo(m.t); }catch(_){ continue; }
+    bx.drawImage(vEl, 0, 0, W, Hc);
+    claves.push({t: m.t, url: big.toDataURL("image/jpeg", 0.72), luz: m.luz, nitidez: m.nitidez});
+    $("vbar").style.width = Math.round(80 + (j + 1) / elegidos.length * 20) + "%";
+  }
+  const nits = muestras.map(m => m.nitidez).sort((a, b) => a - b), mediana = nits[Math.floor(nits.length/2)];
+  VIDEO = {
+    nombre: file.name, mb: file.size / 1e6, duracion: dur, ancho: vw, alto: vh, muestras, tomas: tomas.length, claves,
+    luz: promedio(muestras.map(m => m.luz)), borrosos: muestras.filter(m => m.nitidez < 0.4*mediana).length / muestras.length,
+    cambioMedio: media, segundos: (performance.now() - t0) / 1000, ia: null
+  };
+  mostrarAnalisis();
+}
+
+function mostrarAnalisis(){
+  const v = VIDEO;
+  const filas = [["Duración", mmss(v.duracion)], ["Resolución", `${v.ancho}×${v.alto}`], ["Cuadros analizados", v.muestras.length],
+    ["Tomas detectadas", v.tomas], ["Luz promedio", Math.round(v.luz*100) + " %"], ["Cuadros movidos", Math.round(v.borrosos*100) + " %"]];
+  const dl = $("vstats"); dl.innerHTML = "";
+  filas.forEach(([k, val]) => { const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
+    dt.textContent = k; dd.textContent = val; d.append(dt, dd); dl.append(d); });
+  // gráfico: luz (línea), cambio de imagen (barras), tomas nuevas (rayas), cuadros clave (puntos)
+  const c = $("vchart"), g = c.getContext("2d"), W = c.width, Hh = c.height, css = getComputedStyle(document.documentElement);
+  const col = n => css.getPropertyValue(n).trim() || "#888";
+  const X = t => 6 + (W - 12) * t / v.duracion;
+  g.clearRect(0, 0, W, Hh);
+  const maxC = Math.max(0.05, ...v.muestras.map(m => m.cambio));
+  g.fillStyle = col("--olive");
+  v.muestras.forEach(m => { const bh = (Hh - 14) * m.cambio / maxC; g.fillRect(X(m.t) - 2, Hh - 4 - bh, 4, bh); });
+  g.fillStyle = col("--brick");
+  v.muestras.filter(m => m.corte).forEach(m => g.fillRect(X(m.t) - 1, 2, 2, Hh - 4));
+  g.strokeStyle = col("--gold"); g.lineWidth = 2.5; g.beginPath();
+  v.muestras.forEach((m, i) => { const y = Hh - 6 - (Hh - 14) * m.luz; i ? g.lineTo(X(m.t), y) : g.moveTo(X(m.t), y); });
+  g.stroke();
+  g.fillStyle = col("--ink");
+  v.claves.forEach(k => { g.beginPath(); g.arc(X(k.t), 7, 3.5, 0, 7); g.fill(); });
+
+  const box = $("vframes"); box.innerHTML = "";
+  v.claves.forEach(k => { const f = document.createElement("figure"), im = new Image(), cap = document.createElement("figcaption");
+    im.src = k.url; im.alt = "Cuadro del segundo " + k.t.toFixed(1); cap.textContent = mmss(k.t); f.append(im, cap); box.append(f); });
+  $("vgo").disabled = !v.claves.length;
+  vstatus(`Listo en ${v.segundos.toFixed(1)} s: ${v.claves.length} cuadros clave elegidos por nitidez y cambio de toma.`, "ok");
+}
+
+function datosVideo(){
+  const v = VIDEO;
+  return {
+    archivo: v.nombre, duracion_s: +v.duracion.toFixed(1), resolucion: `${v.ancho}×${v.alto}`,
+    cuadros_analizados: v.muestras.length, tomas_detectadas: v.tomas,
+    luz_promedio_pct: Math.round(v.luz*100), cuadros_borrosos_pct: Math.round(v.borrosos*100),
+    cuadros_clave: v.claves.map((c, i) => ({cuadro: i + 1, segundo: +c.t.toFixed(1), luz_pct: Math.round(c.luz*100), ambiente: c.ambiente || null, que_se_ve: c.descripcion || null})),
+    lectura_ia: v.ia
+  };
+}
+
+const promptVideo = v => `Te paso ${v.claves.length} cuadros, en orden, sacados de un video que recorre un espacio real (casa, departamento, local u oficina).
+${v.claves.map((c, i) => `Cuadro ${i + 1}: segundo ${c.t.toFixed(1)}`).join("\n")}
+Estimá la distribución del espacio para armar una maqueta 3D.
+Devolvé SOLO un objeto JSON con esta forma exacta:
+{"nombre": string, "tipo_espacio": string, "resumen": string, "confianza": "baja"|"media"|"alta",
+ "ambientes": [{"nombre": string, "tipo": string, "x": number, "y": number, "ancho": number, "largo": number, "observaciones": string}],
+ "aberturas": [{"tipo": string, "orientacion": "h"|"v", "x": number, "y": number, "ancho": number}],
+ "cuadros": [{"cuadro": number, "ambiente": string, "descripcion": string}]}
+
+Reglas del video:
+- Incluí SOLO ambientes que se ven en los cuadros. Si todo el video es un único ambiente, devolvé un único ambiente. No inventes ambientes.
+- Las medidas son estimaciones a ojo: usá referencias de tamaño conocido (puerta 0,8 m de ancho y 2 m de alto, mesada 0,6 m de fondo, cama doble 1,4 x 1,9 m, baldosas).
+- "cuadros": un elemento por cada cuadro, con el nombre EXACTO de uno de tus ambientes y una descripción corta de lo que se ve.
+- "observaciones": solo lo que se ve de verdad (piso, paredes, ventanas, luz natural, muebles, estado). Nada inventado.
+- "resumen": una oración sobre el espacio. "confianza": qué tan seguro estás de la distribución.
+
+Reglas de geometría:${PROMPT_BASE.split("Reglas:")[1]}`;
+
+async function pedirCuadros(prompt, urls){
+  if (sampleFn){
+    const blobs = await Promise.all(urls.map(u => fetch(u).then(r => r.blob())));
+    return await sampleFn.json(prompt, {images: imagesOk ? blobs : undefined, modelTier:"default", cache:false});
+  }
+  let r;
+  try { r = await fetch("./api/leer-plano", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({prompt, imagen: urls})}); }
+  catch(_) { throw new Error("no hay conexión con el servidor"); }
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error || "el servidor no respondió");
+  return body.plano;
+}
+
+$("vgo").onclick = async () => {
+  if (!VIDEO || !VIDEO.claves.length) return;
+  const v = VIDEO, titulo = $("busy").querySelector("b"), tituloViejo = titulo.textContent;
+  $("vgo").disabled = true; $("busy").hidden = false; vstatus("");
+  titulo.textContent = "Mirando tu video…";
+  $("busytxt").textContent = `La IA está mirando ${v.claves.length} cuadros para estimar ambientes y medidas.`;
+  let data = null, fallo = null;
+  try{ data = await pedirCuadros(promptVideo(v), v.claves.map(c => c.url)); }catch(e){ fallo = e; }
+  try{
+    if (!data || !Array.isArray(data.ambientes) || !data.ambientes.length) throw fallo || new Error("la IA no encontró ambientes");
+    v.ia = {tipo_espacio: data.tipo_espacio || null, resumen: data.resumen || null, confianza: data.confianza || null,
+            observaciones_por_ambiente: Object.fromEntries(data.ambientes.map(a => [a.nombre, String(a.observaciones || "").slice(0, 300)]))};
+    (data.cuadros || []).forEach(c => { const k = (+c.cuadro) - 1;
+      if (v.claves[k]){ v.claves[k].ambiente = String(c.ambiente || ""); v.claves[k].descripcion = String(c.descripcion || "").slice(0, 200); } });
+    cargar(Object.assign({}, data, {nombre: data.nombre || "Espacio del video", zona: "Estimado desde video", origen: "video"}), null);
+    vstatus(`Listo: ${plan.ambientes.length} ambiente${plan.ambientes.length > 1 ? "s" : ""} estimado${plan.ambientes.length > 1 ? "s" : ""} (confianza ${v.ia.confianza || "sin dato"}). Tocá un ambiente para caminar sus cuadros.`, "ok");
+  }catch(e){
+    v.ia = null; v.claves.forEach(c => { c.ambiente = "Espacio del video"; c.descripcion = null; });
+    cargar({nombre: "Escena de demostración", origen: "demo",
+      ambientes: [{nombre: "Espacio del video", tipo: "estar", x: 0, y: 0, ancho: 4.5, largo: 5}],
+      aberturas: [{tipo: "puerta", orientacion: "h", x: 1, y: 0, ancho: 0.9}, {tipo: "ventanal", orientacion: "h", x: 2.8, y: 5, ancho: 2}]}, null);
+    vstatus(`La IA no pudo leer el video (${(e && e.message) || "sin respuesta"}). Mostramos una escena de demostración con tus cuadros reales.`, "err");
+  }
+  // los cuadros reales del video quedan como fotos de cada ambiente (visor para caminar adentro de la foto)
+  let previo = 0;
+  for (const c of v.claves){
+    let i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(c.ambiente || ""));
+    if (i < 0 && c.ambiente) i = buscarAmbiente(c.ambiente);
+    if (i < 0) i = previo;
+    previo = i;
+    await agregarFoto(i, c.url, "Video " + mmss(c.t));
+  }
+  renderPanel(); actualizarBotonFotos(); setHint();
+  titulo.textContent = tituloViejo; $("busy").hidden = true; $("vgo").disabled = false;
+  try{ history.replaceState(null, "", location.pathname); }catch(_){}
+  if (matchMedia("(min-width: 821px)").matches) guia(true);
+};
+$("vfile").addEventListener("change", e => analizarVideo(e.target.files[0]));
+const vdrop = $("vdrop");
+vdrop.addEventListener("dragover", e => { e.preventDefault(); vdrop.classList.add("over"); });
+vdrop.addEventListener("dragleave", () => vdrop.classList.remove("over"));
+vdrop.addEventListener("drop", e => { e.preventDefault(); vdrop.classList.remove("over"); analizarVideo(e.dataTransfer.files[0]); });
+
 /* ===================== Sol: controles ===================== */
 document.getElementById("hora").addEventListener("input", e => { sol.hora = +e.target.value; aplicarSol(); });
 document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
@@ -1090,6 +1309,10 @@ function buscarAmbiente(q){
 }
 function respuestaLocal(q, conIA){
   const n = norm(q), amb = plan.ambientes, m2 = a => a.ancho*a.largo;
+  if (plan.origen && VIDEO && /(video|dura|toma|borros|nitid|calidad|cuadro)/.test(n)){
+    const d = datosVideo();
+    return {respuesta:`El video dura ${d.duracion_s} s (${d.resolucion}). Analicé ${d.cuadros_analizados} cuadros: ${d.tomas_detectadas} tomas distintas, luz promedio ${d.luz_promedio_pct} % y ${d.cuadros_borrosos_pct} % de cuadros movidos. ${d.cuadros_borrosos_pct > 30 ? "Conviene grabar más despacio." : "Se ve bien para armar el recorrido."}`, ir_a:null};
+  }
   const nav = /(llev|lleva|mostr|ir a|vamos|quiero ver|ver el|ver la|entrar|pasame|anda)/.test(n);
   if (/mas grande|mayor/.test(n)){
     const dorm = /dorm|pieza|habitac|cuarto/.test(n);
@@ -1137,8 +1360,11 @@ async function preguntarIA(q){
   const actual = mode === "recorrido" ? (plan.ambientes[roomAt(camera.position.x, camera.position.z)] || {}).nombre || "la maqueta" : "la vista de maqueta";
   const prev = historial.slice(-4).map(h => `${h.rol === "yo" ? "Visitante" : "Guía"}: ${h.texto}`).join("\n");
   const prompt = `Sos la guía virtual de una propiedad en venta. Respondés las preguntas de posibles compradores mientras recorren su maqueta 3D.
-Datos de la propiedad (medidas en metros, obtenidas del plano):
+${plan.origen ? `Datos del espacio (medidas en metros ESTIMADAS por IA mirando un video; si preguntan medidas, aclará que son aproximadas):` : `Datos de la propiedad (medidas en metros, obtenidas del plano):`}
 ${JSON.stringify(resumenPlano())}
+${plan.origen && VIDEO ? `Análisis real del video (procesado cuadro por cuadro en el navegador) y lo que la IA vio en cada cuadro:
+${JSON.stringify(datosVideo())}
+${plan.origen === "demo" ? "OJO: la maqueta 3D es una escena de demostración, NO la distribución real del espacio. Respondé solo con lo que dice el análisis del video.\n" : ""}` : ""}
 El visitante está en: ${actual}.
 ${prev ? "Conversación previa:\n" + prev + "\n" : ""}Pregunta del visitante: "${q}"
 
@@ -1191,6 +1417,17 @@ async function preguntar(q){
 function iniciarGuia(){
   msgs.innerHTML = ""; historial = [];
   const amb = plan.ambientes, tot = amb.reduce((t, a) => t + a.ancho*a.largo, 0);
+  if (plan.origen && VIDEO){
+    burbuja("ella", plan.origen === "video"
+      ? `Miré tu video: ${VIDEO.claves.length} cuadros clave y ${amb.length} ambiente${amb.length > 1 ? "s" : ""} (~${fmt(tot)} m², medidas estimadas). ${VIDEO.ia && VIDEO.ia.resumen ? VIDEO.ia.resumen : ""} Preguntame lo que quieras.`
+      : `La IA no estuvo disponible, así que el 3D es de demostración. Igual tengo el análisis real de tu video (${VIDEO.claves.length} cuadros clave). Preguntame por él.`);
+    const box = $("sugs"); box.innerHTML = "";
+    const sug = plan.origen === "video"
+      ? [`¿Qué se ve en ${amb[0].nombre.toLowerCase()}?`, "¿Qué ambiente tiene más luz natural?", "¿Cuál es el ambiente más grande?", "¿Qué tan bueno es el video?"]
+      : ["¿Qué tan bueno es el video?", "¿Cuántas tomas tiene el video?"];
+    sug.forEach(t => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.onclick = () => preguntar(t); box.append(b); });
+    return;
+  }
   burbuja("ella", `Hola, soy la guía de ${plan.nombre}. Son ${fmt(tot)} m² en ${amb.length} ambientes. Preguntame lo que quieras o pedime que te lleve a un ambiente.`);
   const big = amb.map((a, i) => [a, i]).sort((x, y) => y[0].ancho*y[0].largo - x[0].ancho*x[0].largo);
   const estar = amb.find(a => a.tipo === "estar" || a.tipo === "comedor");

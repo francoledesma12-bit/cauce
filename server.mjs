@@ -14,7 +14,10 @@ const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 const apiKey = process.env.ANTHROPIC_API_KEY || '';
 const model = process.env.CAUCE_MODEL || 'claude-sonnet-5-5';
 const modelRapido = process.env.CAUCE_MODEL_RAPIDO || 'claude-haiku-5-5';
-const generation = apiKey ? 'ready' : 'not_configured';
+// Respaldo: si no hay clave de Anthropic, se usa Gemini (también solo en el VPS).
+const geminiKey = process.env.GEMINI_API_KEY || '';
+const geminiModel = process.env.CAUCE_GEMINI_MODEL || 'gemini-flash-lite-latest';
+const generation = apiKey ? 'ready' : geminiKey ? 'ready_gemini' : 'not_configured';
 const MAX_BODY = 8 * 1024 * 1024;
 let running = 0;
 
@@ -37,22 +40,44 @@ function parseJson(text) {
   return null;
 }
 
+// Pide texto a la IA disponible. content: [{type:'image', media_type, data} | {type:'text', text}]
+async function pedirIA(content, { modelo, maxTokens, timeout }) {
+  if (apiKey) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: modelo, max_tokens: maxTokens, messages: [{ role: 'user', content: content.map(c => c.type === 'image' ? { type: 'image', source: { type: 'base64', media_type: c.media_type, data: c.data } } : c) }] }),
+      signal: AbortSignal.timeout(timeout)
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`anthropic ${r.status} ${data?.error?.message || ''}`);
+    return (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+  }
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': geminiKey },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: content.map(c => c.type === 'image' ? { inline_data: { mime_type: c.media_type, data: c.data } } : { text: c.text }) }],
+      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: Math.max(maxTokens, 2000) }
+    }),
+    signal: AbortSignal.timeout(timeout)
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(`gemini ${r.status} ${data?.error?.message || ''}`);
+  return (data.candidates?.[0]?.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join('');
+}
+
 async function guia(req, res) {
-  if (!apiKey) return json(res, 503, { error: 'La guía con IA todavía no está configurada en el servidor.' });
+  if (!apiKey && !geminiKey) return json(res, 503, { error: 'La guía con IA todavía no está configurada en el servidor.' });
   if (running >= 6) return json(res, 429, { error: 'Muchas consultas a la vez. Probá en unos segundos.' });
   running++;
   try {
     const { prompt } = JSON.parse(await readBody(req));
     if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 30000) return json(res, 400, { error: 'Pedido inválido.' });
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: modelRapido, max_tokens: 600, messages: [{ role: 'user', content: prompt + '\n\nRespondé solo con el JSON.' }] }),
-      signal: AbortSignal.timeout(30000)
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { console.error('guia', r.status, data?.error?.message); return json(res, 502, { error: 'La IA no respondió.' }); }
-    const g = parseJson((data.content || []).filter(c => c.type === 'text').map(c => c.text).join(''));
+    let text;
+    try { text = await pedirIA([{ type: 'text', text: prompt + '\n\nRespondé solo con el JSON.' }], { modelo: modelRapido, maxTokens: 600, timeout: 30000 }); }
+    catch (e) { console.error('guia', e.message); return json(res, 502, { error: 'La IA no respondió.' }); }
+    const g = parseJson(text);
     if (!g || typeof g.respuesta !== 'string') return json(res, 502, { error: 'Respuesta inválida.' });
     json(res, 200, { guia: { respuesta: g.respuesta.slice(0, 800), ir_a: typeof g.ir_a === 'string' ? g.ir_a : null } });
   } catch (error) {
@@ -61,28 +86,24 @@ async function guia(req, res) {
 }
 
 async function leerPlano(req, res) {
-  if (!apiKey) return json(res, 503, { error: 'La lectura con IA todavía no está configurada en el servidor.' });
+  if (!apiKey && !geminiKey) return json(res, 503, { error: 'La lectura con IA todavía no está configurada en el servidor.' });
   if (running >= 3) return json(res, 429, { error: 'Hay varios planos procesándose. Probá en unos segundos.' });
   running++;
   try {
     const { prompt, imagen } = JSON.parse(await readBody(req));
     if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 20000) return json(res, 400, { error: 'Pedido inválido.' });
     const content = [];
-    if (imagen) {
-      const m = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(imagen);
+    // imagen: un data URL o una lista de hasta 8 (cuadros de un video)
+    const imagenes = (Array.isArray(imagen) ? imagen : imagen ? [imagen] : []).slice(0, 8);
+    for (const im of imagenes) {
+      const m = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(im);
       if (!m) return json(res, 400, { error: 'La imagen tiene que ser JPG, PNG o WebP.' });
-      content.push({ type: 'image', source: { type: 'base64', media_type: m[1], data: m[2] } });
+      content.push({ type: 'image', media_type: m[1], data: m[2] });
     }
     content.push({ type: 'text', text: prompt + '\n\nRespondé solo con el JSON, sin texto adicional.' });
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model, max_tokens: 4000, messages: [{ role: 'user', content }] }),
-      signal: AbortSignal.timeout(90000)
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { console.error('IA', r.status, data?.error?.message); return json(res, 502, { error: 'La IA no respondió. Probá de nuevo.' }); }
-    const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+    let text;
+    try { text = await pedirIA(content, { modelo: model, maxTokens: 4000, timeout: 90000 }); }
+    catch (e) { console.error('IA', e.message); return json(res, 502, { error: 'La IA no respondió. Probá de nuevo.' }); }
     const plano = parseJson(text);
     if (!plano || !Array.isArray(plano.ambientes)) return json(res, 502, { error: 'La IA respondió en un formato inválido. Probá de nuevo.' });
     json(res, 200, { plano });
@@ -97,7 +118,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
   try {
     if (req.method === 'POST' && req.url === `${base}/api/leer-plano`) { await leerPlano(req, res); return; }
     if (req.method === 'POST' && req.url === `${base}/api/guia`) { await guia(req, res); return; }
