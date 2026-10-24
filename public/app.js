@@ -1014,7 +1014,7 @@ async function pedirPlano(prompt, file){
   if (file) imagen = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = ko; fr.readAsDataURL(file); });
   let r;
   try { r = await fetch("./api/leer-plano", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({prompt, imagen})}); }
-  catch(_) { throw {code:"api", message:"No hay conexión con el servidor de Cauce."}; }
+  catch(_) { throw {code:"api", message:"No hay conexión con el servidor de Habita 3D."}; }
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw {code:"api", message: body.error || "El servidor no pudo leer el plano."};
   return body.plano;

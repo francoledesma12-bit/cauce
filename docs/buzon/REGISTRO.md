@@ -150,6 +150,11 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - El encabezado muestra las 4 capacidades: Fotos reales · Recorrido 360° · Grabado con el celular · Chat con IA.
 - Panel ordenado en secciones numeradas (01 Propiedades, 02 Ambientes) con separadores finos. No se tocó la lógica.
 
+## 2026-10-24 ~16:05 · Claude (con Cande) · Nombre nuevo: Habita 3D + página de venta
+- La app se llama Habita 3D (título, logo "h habita 3D", mensajes).
+- public/index.html nuevo (estilos en public/habita.css): página de venta con hero, captura del recorrido con chat de IA, 4 capacidades, 3 pasos, planes (precios de lanzamiento PROPUESTOS, a confirmar) y CTA a la demo (app.html#sarmiento). style.css viejo queda sin uso.
+- Fotos marcadas como "Foto de ejemplo".
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):
