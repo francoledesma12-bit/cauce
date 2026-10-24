@@ -114,3 +114,6 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 ## 24/10/2026 — Realismo editable, variante aislada
 
 Por pedido de Franco se publicó https://andromedaweb.store/cauce-realismo/app.html, preservando la entrega de Cande aac98ea. Pisos PBR descargados CC0, pintura y revestimientos, escala, brillo y exposición en vivo. Fuente, pruebas y límites en docs/realismo/README.md. No se modifican archivos del producto. Falta completar iluminación global y modernizar loaders; no se declara fotorrealismo terminado.
+
+## 24/10/2026 — Prueba fotográfica 360° independiente
+Pedido de Franco: probar experiencia realista desde fotos. Publicación en /cauce-360/, fuente docs/360. Panorama real Wooden Lounge CC0, un único punto panorámico y carga local de foto propia 2:1. Preservado producto de Cande y variante de materiales. No es un recorrido conectado ni reconstrucción desde fotos sueltas.
