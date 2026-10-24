@@ -1,5 +1,6 @@
 import http from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, mkdir, writeFile, readdir } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -19,6 +20,9 @@ const geminiKey = process.env.GEMINI_API_KEY || '';
 const geminiModel = process.env.CAUCE_GEMINI_MODEL || 'gemini-flash-lite-latest';
 const generation = apiKey ? 'ready' : geminiKey ? 'ready_gemini' : 'not_configured';
 const MAX_BODY = 8 * 1024 * 1024;
+// Recorridos grabados: se guardan en disco (en el VPS, /var/lib/cauce; en la compu, .datos/ dentro del proyecto)
+const datos = process.env.CAUCE_DATA || (process.platform === 'win32' ? path.join(root, '.datos') : '/var/lib/cauce');
+const recDir = path.join(datos, 'recorridos');
 let running = 0;
 
 const json = (res, code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
@@ -71,6 +75,45 @@ async function pedirIA(content, { modelo, maxTokens, timeout }) {
     if (!reintentable || intento >= 4 || Date.now() + 2000 * intento > limite - 10000) throw new Error(`gemini ${r.status} ${data?.error?.message || ''}`);
     await new Promise(ok => setTimeout(ok, 2000 * intento));
   }
+}
+
+// POST /api/recorridos {datos} -> {id}; POST /api/recorridos/<id>/img/<k> {imagen}; GET /api/recorridos -> lista
+const idOk = id => /^[0-9a-f]{10}$/.test(id);
+async function crearRecorrido(req, res) {
+  try {
+    const { datos: d } = JSON.parse(await readBody(req));
+    if (!d || !d.plan || !Array.isArray(d.plan.ambientes)) return json(res, 400, { error: 'Recorrido inválido.' });
+    const id = randomBytes(5).toString('hex');
+    await mkdir(path.join(recDir, id), { recursive: true });
+    await writeFile(path.join(recDir, id, 'datos.json'), JSON.stringify({ ...d, id, fecha: new Date().toISOString() }));
+    json(res, 200, { id });
+  } catch (e) { console.error('recorrido', e.message); json(res, 500, { error: 'No se pudo guardar.' }); }
+}
+async function subirImagen(req, res, id, k) {
+  try {
+    if (!idOk(id) || !(k >= 0 && k < 40)) return json(res, 400, { error: 'Pedido inválido.' });
+    await stat(path.join(recDir, id, 'datos.json'));
+    const { imagen } = JSON.parse(await readBody(req));
+    const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(imagen || '');
+    if (!m) return json(res, 400, { error: 'La imagen tiene que ser JPG.' });
+    await writeFile(path.join(recDir, id, k + '.jpg'), Buffer.from(m[1], 'base64'));
+    json(res, 200, { ok: true });
+  } catch (e) {
+    if (e.status === 413) return json(res, 413, { error: 'Imagen demasiado grande.' });
+    console.error('imagen', e.message); json(res, 500, { error: 'No se pudo guardar la imagen.' });
+  }
+}
+async function listarRecorridos(res) {
+  const ids = await readdir(recDir).catch(() => []);
+  const lista = [];
+  for (const id of ids.filter(idOk)) {
+    try {
+      const d = JSON.parse(await readFile(path.join(recDir, id, 'datos.json'), 'utf8'));
+      lista.push({ id, nombre: d.plan.nombre, fecha: d.fecha, ambientes: d.plan.ambientes.length, tipo: d.tipo || 'recorrido' });
+    } catch {}
+  }
+  lista.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  json(res, 200, { recorridos: lista.slice(0, 40) });
 }
 
 async function guia(req, res) {
@@ -129,6 +172,17 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'POST' && req.url === `${base}/api/leer-plano`) { await leerPlano(req, res); return; }
     if (req.method === 'POST' && req.url === `${base}/api/guia`) { await guia(req, res); return; }
+    if (req.method === 'POST' && req.url === `${base}/api/recorridos`) { await crearRecorrido(req, res); return; }
+    const mImg = req.method === 'POST' && /^\/cauce\/api\/recorridos\/([0-9a-f]{10})\/img\/(\d{1,2})$/.exec(req.url);
+    if (mImg) { await subirImagen(req, res, mImg[1], +mImg[2]); return; }
+    if (req.method === 'GET' && req.url === `${base}/api/recorridos`) { await listarRecorridos(res); return; }
+    const mRec = (req.method === 'GET' || req.method === 'HEAD') && /^\/cauce\/rec\/([0-9a-f]{10})\/(datos\.json|\d{1,2}\.jpg)$/.exec(req.url);
+    if (mRec) {
+      const body = await readFile(path.join(recDir, mRec[1], mRec[2])).catch(() => null);
+      if (!body) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': mRec[2].endsWith('.json') ? 'application/json; charset=utf-8' : 'image/jpeg', 'Content-Length': body.length, 'Cache-Control': 'public, max-age=300' });
+      res.end(req.method === 'HEAD' ? undefined : body); return;
+    }
     if (!['GET', 'HEAD'].includes(req.method)) {
       res.writeHead(405, { Allow: 'GET, HEAD' }); res.end(); return;
     }

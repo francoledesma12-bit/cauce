@@ -1269,6 +1269,84 @@ async function abrirCamara(modo360){
   $("vstop").onclick = terminar;
 }
 
+/* ----- Recorridos grabados: se guardan en el servidor para verlos desde cualquier lado ----- */
+// Se suben el plano estimado, lo que vio la IA y las imágenes (360° y cuadros). El video en sí no se sube.
+function achicar(url, maxAncho, calidad){
+  return new Promise(ok => {
+    const im = new Image();
+    im.onload = () => {
+      const esc = Math.min(1, maxAncho / im.naturalWidth), c = document.createElement("canvas");
+      c.width = Math.round(im.naturalWidth * esc); c.height = Math.round(im.naturalHeight * esc);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", calidad));
+    };
+    im.onerror = () => ok(null); im.src = url;
+  });
+}
+async function guardarRecorrido(crudo, imagenes, tipo){
+  if (sampleFn) return;   // dentro de Claude no hay servidor propio
+  const v = VIDEO || {};
+  const datos = {tipo, plan: crudo,
+    fotos: imagenes.map((f, k) => ({k, ambiente: f.ambiente, pano: !!f.pano})),
+    guia: {duracion: v.duracion || 0, ancho: v.ancho || 0, alto: v.alto || 0, muestras: (v.muestras || []).length, tomas: v.tomas || 0,
+           luz: v.luz || 0, borrosos: v.borrosos || 0, ia: v.ia || null,
+           claves: (v.claves || []).map(c => ({t: c.t, ambiente: c.ambiente || null, descripcion: c.descripcion || null}))}};
+  const previo = $("vstatus").textContent, cls = $("vstatus").className.replace("status", "").trim();
+  try{
+    vstatus(previo + " Guardando el recorrido…", cls);
+    let r = await fetch("./api/recorridos", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({datos})});
+    const {id} = await r.json(); if (!r.ok || !id) throw new Error();
+    for (const [k, f] of imagenes.entries()){
+      const img = await achicar(f.url, f.pano ? 4096 : 1280, f.pano ? 0.85 : 0.8); if (!img) continue;
+      vstatus(`${previo} Guardando imágenes ${k + 1}/${imagenes.length}…`, cls);
+      r = await fetch(`./api/recorridos/${id}/img/${k}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({imagen: img})});
+    }
+    try{ history.replaceState(null, "", "#r=" + id); }catch(_){}
+    vstatus(`${previo} ✓ Guardado en «Recorridos grabados»: se puede abrir desde cualquier celular o compu.`, cls || "ok");
+    listarGrabados();
+  }catch(_){ vstatus(previo + " No se pudo guardar el recorrido en el servidor; sigue visible en esta pantalla.", "err"); }
+}
+async function listarGrabados(){
+  if (sampleFn) return;
+  try{
+    const r = await fetch("./api/recorridos", {cache: "no-store"}); if (!r.ok) return;
+    const {recorridos} = await r.json(), box = $("grabadosLista"); box.innerHTML = "";
+    $("grabados").hidden = !recorridos.length;
+    recorridos.forEach(g => {
+      const b = document.createElement("button"); b.className = "preset"; b.dataset.r = g.id;
+      b.innerHTML = `<span><b></b><small></small></span><span class="m"></span>`;
+      b.querySelector("b").textContent = g.nombre || "Recorrido";
+      const f = g.fecha ? new Date(g.fecha) : null;
+      b.querySelector("small").textContent = (g.tipo === "360" ? "360° · " : "Video · ") + (f ? f.toLocaleString("es-AR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}) : "");
+      b.querySelector(".m").textContent = g.ambientes + " amb.";
+      b.onclick = () => { try{ history.replaceState(null, "", "#r=" + g.id); }catch(_){} abrirRecorrido(g.id); };
+      box.append(b);
+    });
+  }catch(_){}
+}
+async function abrirRecorrido(id){
+  if (!/^[0-9a-f]{10}$/.test(id)) return;
+  try{
+    const r = await fetch(`./rec/${id}/datos.json`); if (!r.ok) throw new Error();
+    const d = await r.json(), gu = d.guia || {};
+    VIDEO = {nombre: d.plan.nombre, duracion: gu.duracion, ancho: gu.ancho, alto: gu.alto, muestras: new Array(gu.muestras || 0).fill({}),
+      tomas: gu.tomas, luz: gu.luz, borrosos: gu.borrosos, ia: gu.ia, recorrido: [], segundos: 0,
+      claves: (gu.claves || []).map(c => Object.assign({url: ""}, c))};
+    cargar(d.plan, null);
+    secuencia = [];
+    const panos = [];
+    for (const f of d.fotos || []){
+      let i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(f.ambiente || "")); if (i < 0) i = 0;
+      if (await agregarFoto(i, `./rec/${id}/${f.k}.jpg`, f.pano ? "360°" : "Foto del recorrido")) (f.pano ? panos : secuencia).push([i, fotosDe(i).length - 1]);
+    }
+    if (panos.length) secuencia = panos;
+    renderPanel(); actualizarBotonFotos(); setHint();
+    document.querySelectorAll("#grabadosLista .preset").forEach(b => b.setAttribute("aria-pressed", b.dataset.r === id));
+    if (secuencia.length){ cerrarFotos(); verFotos(secuencia[0][0], secuencia[0][1]); }
+    $("vtour").hidden = !secuencia.length;
+    stage.scrollIntoView({behavior: "smooth", block: "start"});
+  }catch(_){ status("No encontré ese recorrido grabado.", "err"); }
+}
+
 /* ----- Recorrido 360° por ambientes ----- */
 // Cada vuelta es un ambiente. Se guardan la panorámica y 2 cuadros nítidos (para que la IA lo reconozca).
 let TOUR = [];
@@ -1318,14 +1396,15 @@ async function armarTour(){
     amb.push({nombre: "Ambiente " + (k + 1), tipo: "otro", x, y: 0, ancho: 3.5, largo: 3.5, observaciones: ""});
   }
   amb.forEach((a, k) => { if (!a.nombre) a.nombre = "Ambiente " + (k + 1); });
-  cargar({nombre: ok ? (data.nombre || "Recorrido 360°") : "Recorrido 360°", zona: "Estimado desde video", origen: ok ? "video" : "demo",
-          ambientes: amb, aberturas: ok ? data.aberturas || [] : []}, null);
-  // datos para la guía: lo que vio la IA en cada ambiente
+  const crudo = {nombre: ok ? (data.nombre || "Recorrido 360°") : "Recorrido 360°", zona: "Estimado desde video", origen: ok ? "video" : "demo",
+          ambientes: amb, aberturas: ok ? data.aberturas || [] : []};
+  // datos para la guía: lo que vio la IA en cada ambiente (antes de cargar, para que la guía salude con ellos)
   VIDEO = {nombre: "Recorrido 360°", duracion: caps.reduce((t, c) => t + c.dur, 0), ancho: 0, alto: 0, muestras: [], tomas: caps.length, recorrido: [],
     luz: promedio(caps.map(c => c.luz)), borrosos: 0, segundos: 0,
     claves: caps.map((c, k) => ({t: k, url: c.frames[0], ambiente: amb[k].nombre, descripcion: String(amb[k].observaciones || "").slice(0, 200)})),
     ia: ok ? {tipo_espacio: data.tipo_espacio || null, resumen: data.resumen || null, confianza: data.confianza || null,
               observaciones_por_ambiente: Object.fromEntries(amb.map(a => [a.nombre, String(a.observaciones || "").slice(0, 300)]))} : null};
+  cargar(crudo, null);
   secuencia = [];
   for (const [k, c] of caps.entries()){
     let i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(amb[k].nombre));
@@ -1340,6 +1419,7 @@ async function armarTour(){
   guia(matchMedia("(min-width: 821px)").matches);
   if (secuencia.length){ cerrarFotos(); verFotos(secuencia[0][0], secuencia[0][1]); }
   stage.scrollIntoView({behavior: "smooth", block: "start"});
+  guardarRecorrido(crudo, caps.map((c, k) => ({url: c.pano.url, ambiente: amb[k].nombre, pano: true})), "360");
 }
 
 // Panorámica 360° armada en vivo: al girar sobre uno mismo, cada cuadro está corrido en horizontal respecto
@@ -1571,7 +1651,9 @@ async function pedirCuadros(prompt, urls){
   return body.plano;
 }
 
+let crudoVideo = null;
 $("vgo").onclick = async () => {
+  crudoVideo = null;
   if (!VIDEO || !VIDEO.claves.length) return;
   const v = VIDEO, titulo = $("busy").querySelector("b"), tituloViejo = titulo.textContent;
   $("vgo").disabled = true; $("busy").hidden = false; vstatus("");
@@ -1585,7 +1667,8 @@ $("vgo").onclick = async () => {
             observaciones_por_ambiente: Object.fromEntries(data.ambientes.map(a => [a.nombre, String(a.observaciones || "").slice(0, 300)]))};
     (data.cuadros || []).forEach(c => { const k = (+c.cuadro) - 1;
       if (v.claves[k]){ v.claves[k].ambiente = String(c.ambiente || ""); v.claves[k].descripcion = String(c.descripcion || "").slice(0, 200); } });
-    cargar(Object.assign({}, data, {nombre: data.nombre || "Espacio del video", zona: "Estimado desde video", origen: "video"}), null);
+    crudoVideo = Object.assign({}, data, {nombre: data.nombre || "Espacio del video", zona: "Estimado desde video", origen: "video"});
+    cargar(crudoVideo, null);
     vstatus(`Listo: ${plan.ambientes.length} ambiente${plan.ambientes.length > 1 ? "s" : ""} estimado${plan.ambientes.length > 1 ? "s" : ""} (confianza ${v.ia.confianza || "sin dato"}). ${v.consejo || ""}`, "ok");
   }catch(e){
     v.ia = null; v.claves.forEach(c => { c.ambiente = "Espacio del video"; c.descripcion = null; });
@@ -1620,6 +1703,15 @@ $("vgo").onclick = async () => {
   else { guia(false); stage.scrollIntoView({behavior: "smooth", block: "start"}); }
   $("vtour").hidden = !secuencia.length;
   if (v.pano || !abrirVideoRecorrido()) recorrerVideo();
+  {
+    const paso = Math.max(1, Math.ceil(v.recorrido.length / 12)), imgs = [];
+    if (v.pano) imgs.push({url: v.pano.url, ambiente: plan.ambientes[0].nombre, pano: true});
+    v.recorrido.filter((_, k) => k % paso === 0).forEach(r => {
+      const c = v.claves.reduce((x, y) => Math.abs(y.t - r.t) < Math.abs(x.t - r.t) ? y : x);
+      imgs.push({url: r.url, ambiente: (plan.ambientes[c.i] || plan.ambientes[0]).nombre});
+    });
+    guardarRecorrido(crudoVideo || {nombre: plan.nombre, origen: plan.origen, ambientes: plan.ambientes, aberturas: []}, imgs, "video");
+  }
 };
 
 // Recorrido automático: entra a los cuadros del video en el orden en que se grabaron y camina de uno a otro.
@@ -1872,7 +1964,7 @@ function iniciarGuia(){
   const amb = plan.ambientes, tot = amb.reduce((t, a) => t + a.ancho*a.largo, 0);
   if (plan.origen && VIDEO){
     burbuja("ella", plan.origen === "video"
-      ? `Miré tu video: ${VIDEO.claves.length} cuadros clave y ${amb.length} ambiente${amb.length > 1 ? "s" : ""} (~${fmt(tot)} m², medidas estimadas). ${VIDEO.ia && VIDEO.ia.resumen ? VIDEO.ia.resumen : ""} Preguntame lo que quieras.`
+      ? `Miré el recorrido: ${amb.length} ambiente${amb.length > 1 ? "s" : ""} (~${fmt(tot)} m², medidas estimadas). ${VIDEO.ia && VIDEO.ia.resumen ? VIDEO.ia.resumen : ""} Preguntame lo que quieras.`
       : `La IA no estuvo disponible, así que el 3D es de demostración. Igual tengo el análisis real de tu video (${VIDEO.claves.length} cuadros clave). Preguntame por él.`);
     const box = $("sugs"); box.innerHTML = "";
     const sug = plan.origen === "video"
@@ -2257,6 +2349,8 @@ const k0 = PRESETS[start] ? start : "montevideo";
 resize();
 cargar(PRESETS[k0], k0);
 if (start.startsWith("p=")) planDesdeLink(start).then(p => { cargar(p, null); status("Plano abierto desde un link compartido.", "ok"); }).catch(() => status("El link del plano está incompleto o dañado.", "err"));
+if (start.startsWith("r=")) abrirRecorrido(start.slice(2));
+listarGrabados();
 cargarRecursos();
 requestAnimationFrame(frame);
 })();

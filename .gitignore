@@ -23,3 +23,6 @@ Thumbs.db
 
 # Registros
 *.log
+
+# Recorridos grabados en pruebas locales
+.datos/
