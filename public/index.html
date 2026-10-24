@@ -12,8 +12,8 @@
 <body>
 <header class="nav">
   <a class="brand" href="./" aria-label="Habita 3D, inicio"><span class="mark">h</span>habita<span class="b3d">3D</span></a>
-  <nav class="links" aria-label="Secciones"><a href="#explorar">Recorridos 360° y fotos</a><a href="#producto">Producto</a><a href="#como">Cómo funciona</a><a href="#planes">Planes</a></nav>
-  <a class="btn sm" href="#explorar">Ver la demo</a>
+  <nav class="links" aria-label="Secciones"><a href="#casa">Recorrido 360°</a><a href="#tecnoteca">Grabado con el celular</a><a href="#producto">Producto</a><a href="#como">Cómo funciona</a><a href="#planes">Planes</a></nav>
+  <a class="btn sm" href="./app.html#sarmiento">Ver la demo</a>
 </header>
 
 <main>
@@ -23,8 +23,8 @@
       <h1>Que tus clientes recorran la propiedad <em>antes de visitarla.</em></h1>
       <p class="lead">Grabás cada ambiente con el celular y Habita 3D arma un recorrido 360° con fotos reales. Una guía con IA responde las preguntas de tus clientes a cualquier hora.</p>
       <div class="ctas">
-        <a class="btn" href="#explorar">Probar la demo en vivo <span aria-hidden="true">→</span></a>
-        <a class="btn ghost" href="#explorar">Ver el recorrido 360° con fotos reales</a>
+        <a class="btn" href="./app.html#sarmiento">Probar la demo en vivo <span aria-hidden="true">→</span></a>
+        <a class="btn ghost" href="./app.html#montevideo-360">Ver el recorrido 360° con fotos reales</a>
       </div>
       <ul class="trust"><li>Sin apps: funciona en el navegador</li><li>Link y QR para el cartel</li><li>Listo en minutos</li></ul>
     </div>
@@ -47,10 +47,16 @@
   </section>
 
 
-  <section class="tecnoteca-live" id="explorar" aria-labelledby="explorar-title">
-    <div class="tecnoteca-heading"><div><p class="eyebrow">360° + FOTOS REALES · TODO EN HABITA 3D</p><h2 id="explorar-title">Elegí un espacio. Entrá y mirá alrededor.</h2><p>Explorá los recorridos de ejemplo o elegí Tecnoteca para ver nuestra captura real del hackatón. Sin salir de esta plataforma.</p></div><button class="btn" id="ampliarExplorador" type="button">Ampliar recorrido ⛶</button></div>
-    <div class="explorador-marco" id="exploradorMarco"><iframe id="exploradorApp" src="./app.html#montevideo-360" title="Explorador Habita 3D: recorridos 360°, fotos y Tecnoteca" allow="fullscreen; camera; microphone" allowfullscreen></iframe></div>
-    <p class="tecnoteca-nota">Las propiedades de ejemplo usan fotos de demostración. Tecnoteca usa imágenes de nuestro video, con cobertura parcial y uniones visibles.</p>
+  <section class="tecnoteca-live" id="casa" aria-labelledby="casa-title">
+    <div class="tecnoteca-heading"><div><p class="eyebrow">DEMO EN VIVO · RECORRIDO 360° CON FOTOS REALES</p><h2 id="casa-title">Recorré una propiedad como lo haría tu cliente.</h2><p>Arrastrá para mirar alrededor, pasá de un ambiente a otro y abrí la guía con IA para preguntarle a la propiedad.</p></div><a class="btn" href="./app.html#montevideo-360" target="_blank" rel="noopener">Abrir en grande ↗</a></div>
+    <iframe src="./app.html#montevideo-360" title="Recorrido 360° de una propiedad con fotos reales" loading="lazy" allow="fullscreen" allowfullscreen></iframe>
+    <p class="tecnoteca-nota">Fotos de ejemplo de un departamento real.</p>
+  </section>
+
+  <section class="tecnoteca-live" id="tecnoteca" aria-labelledby="tecnoteca-title">
+    <div class="tecnoteca-heading"><div><p class="eyebrow">GRABADO CON EL CELULAR · TECNOTECA, DURANTE EL HACKATÓN</p><h2 id="tecnoteca-title">Ahora, recorré el lugar donde lo creamos.</h2><p>Mové la vista y cambiá entre tres puntos de la captura. Procesado con GPU a partir de nuestro video del hackatón.</p></div><a class="btn" href="./tecnoteca-360.html" target="_blank" rel="noopener">Abrir en grande ↗</a></div>
+    <iframe src="./tecnoteca-360.html?embed=1" title="Panorama interactivo de Tecnoteca, captura real del hackatón" loading="lazy" allow="fullscreen" allowfullscreen></iframe>
+    <p class="tecnoteca-nota">Prueba panorámica de cobertura parcial: hay zonas sin capturar y uniones visibles. No es un modelo 3D medido ni una propiedad en venta.</p>
   </section>
 
   <section class="strip" aria-label="En números">
@@ -85,18 +91,17 @@
     <p class="sub">Precios de lanzamiento para las primeras inmobiliarias.</p>
     <div class="grid3">
       <article><h3>Inicial</h3><p class="price">USD 19<small>/mes</small></p><ul><li>Hasta 5 propiedades activas</li><li>Recorrido 360° y fotos</li><li>Link y QR</li></ul><a class="btn ghost" href="./app.html">Empezar</a></article>
-      <article class="hot"><span class="badge">Más elegido</span><h3>Profesional</h3><p class="price">USD 49<small>/mes</small></p><ul><li>Hasta 30 propiedades activas</li><li>Guía con IA 24/7</li><li>Tu marca en el recorrido</li></ul><a class="btn" href="#explorar">Ver la demo</a></article>
+      <article class="hot"><span class="badge">Más elegido</span><h3>Profesional</h3><p class="price">USD 49<small>/mes</small></p><ul><li>Hasta 30 propiedades activas</li><li>Guía con IA 24/7</li><li>Tu marca en el recorrido</li></ul><a class="btn" href="./app.html#sarmiento">Ver la demo</a></article>
       <article><h3>Red</h3><p class="price">A medida</p><ul><li>Propiedades ilimitadas</li><li>Varias sucursales</li><li>Integración con portales</li></ul><a class="btn ghost" href="./app.html">Hablemos</a></article>
     </div>
   </section>
 
   <section class="final">
     <h2>Mostrá tu próxima propiedad en 360° hoy.</h2>
-    <a class="btn light" href="#explorar">Probar la demo en vivo <span aria-hidden="true">→</span></a>
+    <a class="btn light" href="./app.html#montevideo-360">Probar la demo en vivo <span aria-hidden="true">→</span></a>
   </section>
 </main>
 
 <footer><span class="brand sm"><span class="mark">h</span>habita<span class="b3d">3D</span></span><span>Franco, Cande y Oscar · Shippear Rosario 2026</span></footer>
-<script src="./plataforma.js"></script>
 </body>
 </html>
