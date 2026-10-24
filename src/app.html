@@ -917,25 +917,43 @@ function entradaIndex(){
   return j >= 0 ? j : 0;
 }
 
+// Encuadre de foto inmobiliaria: desde una esquina, a 1,5 m, en diagonal hacia la pared amueblada.
+function encuadre(a){
+  const cx = a.x + a.ancho/2, cz = a.y + a.largo/2;
+  if (Math.min(a.ancho, a.largo) < 1.7 || ["pasillo","entrada"].includes(a.tipo)){
+    let dx = bounds.cx - cx, dz = bounds.cy - cz;
+    if (Math.hypot(dx, dz) < 0.5){ dx = a.ancho >= a.largo ? 1 : 0; dz = a.ancho >= a.largo ? 0 : 1; }
+    return {pos:new THREE.Vector3(cx, 1.55, cz), yaw:Math.atan2(-dx, -dz), pitch:-0.08};
+  }
+  const w = paredes(a, plan.aberturas)[0], m = 0.45;
+  // punto que queremos mostrar: centro de la pared amueblada, a 1 m de ella
+  const foco = {top:[cx, a.y + 1], bottom:[cx, a.y + a.largo - 1], left:[a.x + 1, cz], right:[a.x + a.ancho - 1, cz]}[w.side];
+  // la cámara va a una de las dos esquinas opuestas a esa pared (la más lejana a puertas)
+  const opp = {top:"bottom", bottom:"top", left:"right", right:"left"}[w.side];
+  const esq = (opp === "top" || opp === "bottom")
+    ? [[a.x + m, opp === "top" ? a.y + m : a.y + a.largo - m], [a.x + a.ancho - m, opp === "top" ? a.y + m : a.y + a.largo - m]]
+    : [[opp === "left" ? a.x + m : a.x + a.ancho - m, a.y + m], [opp === "left" ? a.x + m : a.x + a.ancho - m, a.y + a.largo - m]];
+  const puertas = plan.aberturas.filter(o => o.tipo !== "ventana").map(o => o.orientacion === "h" ? [o.centro, o.line*G] : [o.line*G, o.centro]);
+  const libre = p => Math.min(99, ...puertas.map(([x, z]) => Math.hypot(x - p[0], z - p[1])));
+  const [px, pz] = libre(esq[0]) >= libre(esq[1]) ? esq[0] : esq[1];
+  const dx = foco[0] - px, dz = foco[1] - pz;
+  return {pos:new THREE.Vector3(px, 1.5, pz), yaw:Math.atan2(-dx, -dz), pitch:-0.12};
+}
 function irA(i, fromMaqueta){
   const a = plan.ambientes[i]; if (!a) return;
-  const to = new THREE.Vector3(a.x + a.ancho/2, 1.6, a.y + a.largo/2);
-  // mirar hacia el centro de la propiedad (o hacia el lado más largo si ya estamos en el centro)
-  let dx = bounds.cx - to.x, dz = bounds.cy - to.z;
-  if (Math.hypot(dx, dz) < 0.5){ dx = a.ancho >= a.largo ? 1 : 0; dz = a.ancho >= a.largo ? 0 : 1; }
-  const yaw = Math.atan2(-dx, -dz);
+  const {pos:to, yaw, pitch} = encuadre(a);
   const from = camera.position.clone(), y0 = look.yaw, p0 = look.pitch;
   if (fromMaqueta){
     const q0 = camera.quaternion.clone();
     camera.fov = 64; camera.updateProjectionMatrix();
     tween(1100, k => {
       camera.position.lerpVectors(from, to, k);
-      const qt = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.05, yaw, 0, "YXZ"));
+      const qt = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0, "YXZ"));
       camera.quaternion.copy(q0).slerp(qt, k);
-    }, () => { look.yaw = yaw; look.pitch = -0.05; });
+    }, () => { look.yaw = yaw; look.pitch = pitch; });
   } else {
     let dy = yaw - y0; while (dy > Math.PI) dy -= 2*Math.PI; while (dy < -Math.PI) dy += 2*Math.PI;
-    tween(800, k => { camera.position.lerpVectors(from, to, k); look.yaw = y0 + dy*k; look.pitch = p0 + (-0.05 - p0)*k; applyLook(); });
+    tween(900, k => { camera.position.lerpVectors(from, to, k); look.yaw = y0 + dy*k; look.pitch = p0 + (pitch - p0)*k; applyLook(); });
   }
 }
 function applyLook(){ camera.quaternion.setFromEuler(new THREE.Euler(look.pitch, look.yaw, 0, "YXZ")); }
@@ -967,7 +985,7 @@ function clickAt(e){
   ray.setFromCamera(ndc, camera);
   const hit = ray.intersectObjects(floors)[0]; if (!hit) return;
   if (mode === "maqueta"){ setMode("recorrido", hit.object.userData.room); return; }
-  const to = new THREE.Vector3(hit.point.x, 1.6, hit.point.z), from = camera.position.clone();
+  const to = new THREE.Vector3(hit.point.x, 1.5, hit.point.z), from = camera.position.clone();
   const d = from.distanceTo(to);
   tween(Math.min(1400, 300 + d*260), k => camera.position.lerpVectors(from, to, k));
 }
