@@ -1103,7 +1103,18 @@ async function analizarVideo(file){
     vstatus(`Analizando cuadro ${k + 1} de ${n}…`);
   }
   if (muestras.length < 3){ vstatus("No pude recorrer el video. Probá con otro archivo.", "err"); return; }
+  const W = Math.min(640, vw), Hc = Math.round(W * vh / vw);
+  const big = document.createElement("canvas"); big.width = W; big.height = Hc;
+  const bx = big.getContext("2d");
+  await resumirMuestras(muestras, {nombre: file.name, duracion: dur, ancho: vw, alto: vh, t0}, async m => {
+    await irAlSegundo(m.t); bx.drawImage(vEl, 0, 0, W, Hc); return big.toDataURL("image/jpeg", 0.72);
+  });
+}
 
+// Tomas, cuadros clave y resumen. Sirve igual para un archivo o para la cámara en vivo.
+// capturar(m) devuelve la imagen grande de una muestra (la cámara ya la trae en m.url).
+async function resumirMuestras(muestras, meta, capturar){
+  const dur = meta.duracion;
   // tomas: hay corte donde el cambio de imagen supera la media + 1,2 desvíos
   const cs = muestras.slice(1).map(m => m.cambio), media = promedio(cs);
   const sd = Math.sqrt(promedio(cs.map(c => (c - media)**2)));
@@ -1120,24 +1131,69 @@ async function analizarVideo(file){
   grupos = grupos.filter(g => g.length).sort((a, b) => b.length - a.length).slice(0, 6).sort((a, b) => a[0].t - b[0].t);
   const elegidos = grupos.map(g => { const ok = g.filter(m => m.luz > 0.08 && m.luz < 0.95); return (ok.length ? ok : g).reduce((x, y) => y.nitidez > x.nitidez ? y : x); });
 
-  const W = Math.min(640, vw), Hc = Math.round(W * vh / vw);
-  const big = document.createElement("canvas"); big.width = W; big.height = Hc;
-  const bx = big.getContext("2d");
   const claves = [];
   for (const [j, m] of elegidos.entries()){
-    try{ await irAlSegundo(m.t); }catch(_){ continue; }
-    bx.drawImage(vEl, 0, 0, W, Hc);
-    claves.push({t: m.t, url: big.toDataURL("image/jpeg", 0.72), luz: m.luz, nitidez: m.nitidez});
+    let url = m.url;
+    if (!url){ try{ url = await capturar(m); }catch(_){ continue; } }
+    claves.push({t: m.t, url, luz: m.luz, nitidez: m.nitidez});
     $("vbar").style.width = Math.round(80 + (j + 1) / elegidos.length * 20) + "%";
   }
+  muestras.forEach(m => { if (!elegidos.includes(m)) delete m.url; });   // libera memoria de la cámara
   const nits = muestras.map(m => m.nitidez).sort((a, b) => a - b), mediana = nits[Math.floor(nits.length/2)];
   VIDEO = {
-    nombre: file.name, mb: file.size / 1e6, duracion: dur, ancho: vw, alto: vh, muestras, tomas: tomas.length, claves,
+    nombre: meta.nombre, duracion: dur, ancho: meta.ancho, alto: meta.alto, muestras, tomas: tomas.length, claves,
     luz: promedio(muestras.map(m => m.luz)), borrosos: muestras.filter(m => m.nitidez < 0.4*mediana).length / muestras.length,
-    cambioMedio: media, segundos: (performance.now() - t0) / 1000, ia: null
+    cambioMedio: media, segundos: (performance.now() - meta.t0) / 1000, ia: null
   };
   mostrarAnalisis();
 }
+
+/* ----- Cámara en vivo: se analiza mientras se graba ----- */
+let cam = null;
+document.body.append($("vlive"));   // fuera del panel, para que ocupe toda la pantalla
+$("vcam").onclick = async () => {
+  $("vres").hidden = false; vstatus("");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ vstatus("Este navegador no deja usar la cámara desde la página. Usá «Elegir video».", "err"); return; }
+  try{ cam = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1280}}, audio: false}); }
+  catch(_){ vstatus("No pude abrir la cámara: hay que darle permiso a la página.", "err"); return; }
+  const v = $("vcamv"); v.srcObject = cam; await v.play().catch(() => {});
+  for (let k = 0; k < 50 && !v.videoWidth; k++) await new Promise(r => setTimeout(r, 100));
+  if (!v.videoWidth){ pararCamara(); vstatus("La cámara no mandó imagen. Probá de nuevo.", "err"); return; }
+  VIDEO = null; $("vgo").disabled = true; $("vframes").innerHTML = ""; $("vstats").innerHTML = ""; $("vbar").style.width = "0";
+  $("vsub").textContent = "Grabación en vivo"; $("vlive").hidden = false;
+  const vw = v.videoWidth, vh = v.videoHeight, w = 96, h = Math.max(8, Math.round(96 * vh / vw));
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const cx = cv.getContext("2d", {willReadFrequently: true});
+  const W = Math.min(480, vw), Hc = Math.round(W * vh / vw);
+  const big = document.createElement("canvas"); big.width = W; big.height = Hc; const bx = big.getContext("2d");
+  const muestras = [], t0 = performance.now(); let tomasVivo = 1;
+  const tick = () => {
+    const t = (performance.now() - t0) / 1000;
+    cx.drawImage(v, 0, 0, w, h);
+    const m = medir(cx.getImageData(0, 0, w, h).data, w, h);
+    m.t = t; m.cambio = muestras.length ? distancia(m.hist, muestras[muestras.length - 1].hist) : 0;
+    bx.drawImage(v, 0, 0, W, Hc); m.url = big.toDataURL("image/jpeg", 0.7);
+    if (m.cambio > 0.25 && muestras.length > 1) tomasVivo++;
+    muestras.push(m);
+    $("vlivetxt").textContent = `● ${mmss(t)} · ${muestras.length} cuadros · ${tomasVivo} cambio${tomasVivo > 1 ? "s" : ""} de imagen · luz ${Math.round(m.luz*100)} %`;
+    if (t >= 90) terminar();
+  };
+  cam.timer = setInterval(tick, 500);
+  const terminar = async () => {
+    if (!cam) return;
+    const dur = (performance.now() - t0) / 1000;
+    pararCamara();
+    if (muestras.length < 4){ vstatus("Grabá al menos 2 segundos recorriendo el lugar.", "err"); return; }
+    await resumirMuestras(muestras, {nombre: "Grabación en vivo", duracion: dur, ancho: vw, alto: vh, t0: performance.now()}, null);
+    $("vgo").click();   // al terminar se arma solo
+  };
+  $("vstop").onclick = terminar;
+};
+function pararCamara(){
+  if (!cam) return;
+  clearInterval(cam.timer); cam.getTracks().forEach(t => t.stop()); cam = null;
+  $("vcamv").srcObject = null; $("vlive").hidden = true;
+}
+$("vcancel").onclick = () => { pararCamara(); vstatus("Grabación cancelada."); };
 
 function mostrarAnalisis(){
   const v = VIDEO;
