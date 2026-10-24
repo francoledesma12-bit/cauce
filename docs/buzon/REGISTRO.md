@@ -60,6 +60,16 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Evidencia:** [contraste](CONTRASTE-3D.md).
 - **Siguiente paso:** que el equipo aplique y revise el contraste en el visor principal, y cierre proveedor/generación con una prueba desde otro dispositivo.
 
+## 24/10/2026, 13:40 ART — Entrega de Cande (con Claude): realismo del recorrido y contraste pedido por Franco
+
+- **Objetivo:** que el recorrido se vea como una casa real (pedido de Cande: "no de Sims") y aplicar en la app principal el contraste pedido por Franco.
+- **Estado:** publicado; lógica probada en navegador simulado; visual pendiente en celulares reales.
+- **Cambios y commit:**
+  - 132d5e1: luz de entorno con reflejos suaves, luces cálidas por ambiente, piso de madera con veta y brillo, porcelanato 60x60, paredes con textura, sombras de contacto, muebles con bordes redondeados (sillón con almohadones, cama con acolchado, mesas de luz con lámparas, cocina modular con alacenas, baño con espejo, comedor, plantas) y paleta neutra.
+  - Este commit: fondo del visor en verde pino profundo (color de la marca) en vista maqueta, suelo apenas más claro para que se lean las sombras, etiquetas más grandes. Criterio tomado de CONTRASTE-3D.md, sin perder guía, sol, ciudad ni materiales.
+- **Pruebas:** navegador simulado con los 3 planos y la guía; sin errores de JavaScript.
+- **Pendiente:** revisión visual en escritorio y dos celulares (checklist de issue #1). Rendimiento en equipos lentos: si se traba, bajar la calidad de sombras.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

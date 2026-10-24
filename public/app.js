@@ -142,7 +142,7 @@ const groundOut = new THREE.Color(0xdcdcd3), groundIn = new THREE.Color(0xa8a79f
 function themeScene(){
   const c = getComputedStyle(document.documentElement).getPropertyValue("--stage").trim() || "#e9ebe6";
   const col = new THREE.Color(c);
-  groundOut.copy(col).multiplyScalar(0.96);
+  groundOut.copy(col).offsetHSL(0, -0.05, 0.035);
   ground.material.color.copy(ground.userData.inside ? groundIn : groundOut);
   scene.fog = new THREE.Fog(col, 30, 90);
 }
