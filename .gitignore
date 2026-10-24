@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+.venv/
+venv/
+__pycache__/
+
+# Compilados
+dist/
+build/
+.next/
+out/
+
+# Claves y configuración local (nunca subir)
+.env
+.env.*
+!.env.example
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Registros
+*.log
