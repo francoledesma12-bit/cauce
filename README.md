@@ -74,9 +74,8 @@ cd cauce
 | Integrante | Rol | GitHub |
 |---|---|---|
 | Franco Ledesma | _a completar_ | [@francoledesma12-bit](https://github.com/francoledesma12-bit) |
-| _a completar_ | _a completar_ | _a completar_ |
-| _a completar_ | _a completar_ | _a completar_ |
-| _a completar_ | _a completar_ | _a completar_ |
+| Cande Lagar | _a completar_ | [@candepilar](https://github.com/candepilar) |
+| Oscar Barrios | _a completar_ | [@oskr2562](https://github.com/oskr2562) |
 
 ## Próximos pasos
 
