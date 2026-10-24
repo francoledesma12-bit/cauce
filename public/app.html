@@ -8,10 +8,10 @@
 </head>
 <body><div class="app">
   <header class="top">
-    <div class="brand"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 20V9l9-6 9 6v11" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 20h18M9 20v-6h6v6" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round"/></svg>Cauce</div>
+    <a class="brand" href="./" aria-label="Cauce, inicio"><span class="mark">c</span>cauce<span class="dot">.</span></a>
     <span class="tag">Del plano al recorrido 3D, en un minuto</span>
     <span class="sp"></span>
-    <span class="pill">Demo · Shippear #3</span>
+    <span class="pill">Shippear · Rosario 2026</span>
   </header>
 
   <aside class="panel">
@@ -43,17 +43,31 @@
     </section>
   </aside>
 
-  <main class="stage" id="stage">
+  <main class="stage g-open" id="stage">
     <canvas id="gl"></canvas>
     <div class="labels" id="labels"></div>
     <div class="modes" role="group" aria-label="Vista">
       <button id="mMaqueta" aria-pressed="true">Maqueta</button>
       <button id="mRecorrido" aria-pressed="false">Recorrido</button>
     </div>
-    <div class="tools"><button id="cut">Ver paredes completas</button></div>
+    <div class="tools">
+      <div class="sunbox">
+        <div class="row"><b>Sol en Rosario</b><div class="seg" role="group" aria-label="Estación"><button data-e="verano" aria-pressed="false">Verano</button><button data-e="invierno" aria-pressed="true">Invierno</button></div></div>
+        <input type="range" id="hora" min="6" max="20" step="0.25" value="11" aria-label="Hora del día">
+        <div class="small" id="solTxt"></div>
+      </div>
+      <button id="cut">Ver paredes completas</button>
+    </div>
     <div class="title3d" id="title3d"></div>
     <div class="hint" id="hint">Arrastrá para girar · tocá un ambiente para entrar</div>
     <div class="chips" id="chips"></div>
+    <section class="guide" id="guide" aria-label="Guía de la propiedad">
+      <header><b>Preguntale a la propiedad</b><span class="ia">IA</span><button id="gClose" aria-label="Cerrar la guía">×</button></header>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="sugs" id="sugs"></div>
+      <form id="gForm"><input id="gIn" autocomplete="off" placeholder="Ej.: ¿entra un sillón de 2,20 m?" aria-label="Tu pregunta"><button class="btn" id="gSend">Preguntar</button></form>
+    </section>
+    <button class="gfab" id="gOpen" hidden>Preguntale a la propiedad</button>
     <div class="busy" id="busy" hidden><div class="card"><div class="spin"></div><b>Leyendo el plano…</b><span class="status" id="busytxt">La IA está detectando ambientes, medidas y aberturas.</span></div></div>
   </main>
 </div>

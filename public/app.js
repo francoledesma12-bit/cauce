@@ -5,6 +5,7 @@ const PRESETS = {
   montevideo: {
     nombre: "Monoambiente · Montevideo 953",
     zona: "Rosario Centro",
+    norte: "abajo",
     ambientes: [
       {nombre:"Entrada", tipo:"entrada", x:0, y:0, ancho:1.6, largo:2.0},
       {nombre:"Baño", tipo:"bano", x:0, y:2.0, ancho:1.6, largo:2.2},
@@ -28,6 +29,7 @@ const PRESETS = {
   sarmiento: {
     nombre: "2 dormitorios · Sarmiento y Córdoba",
     zona: "Rosario Centro",
+    norte: "arriba",
     ambientes: [
       {nombre:"Balcón", tipo:"balcon", x:0, y:0, ancho:5.2, largo:1.3},
       {nombre:"Living comedor", tipo:"estar", x:0, y:1.3, ancho:5.2, largo:4.0},
@@ -96,7 +98,8 @@ function normalizar(raw){
     return {tipo, orientacion: ori, line, centro: ori === "h" ? x : y, ancho: Math.max(0.5, Math.abs(+o.ancho || 0.8))};
   }).filter(Boolean);
 
-  return {nombre: String(raw.nombre || "Plano sin nombre").slice(0, 60), zona: raw.zona || "", ambientes: amb, aberturas: ab};
+  const norte = ["arriba","abajo","izquierda","derecha"].includes(raw.norte) ? raw.norte : "arriba";
+  return {nombre: String(raw.nombre || "Plano sin nombre").slice(0, 60), zona: raw.zona || "", norte, ambientes: amb, aberturas: ab};
 }
 
 /* ===================== Escena 3D ===================== */
@@ -108,6 +111,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 renderer.localClippingEnabled = true;
 
 const scene = new THREE.Scene();
@@ -116,19 +121,22 @@ const controls = new THREE.OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
 controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 3; controls.maxDistance = 40;
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b3a6, 0.75));
-const sun = new THREE.DirectionalLight(0xfff4e3, 0.85);
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005;
+const hemi = new THREE.HemisphereLight(0xeef3ff, 0xb9b3a6, 0.7);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff4e3, 0.9);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
 scene.add(sun, sun.target);
 
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({color:0xdcdcd3, roughness:1}));
 ground.rotation.x = -Math.PI/2; ground.position.y = -0.02; ground.receiveShadow = true; scene.add(ground);
 
-// el entorno toma el color del tema (claro u oscuro)
+// el entorno toma el color del tema (claro u oscuro); desde adentro, vereda y calle
+const groundOut = new THREE.Color(0xdcdcd3), groundIn = new THREE.Color(0xa8a79f);
 function themeScene(){
   const c = getComputedStyle(document.documentElement).getPropertyValue("--stage").trim() || "#e9ebe6";
   const col = new THREE.Color(c);
-  ground.material.color.copy(col).multiplyScalar(0.96);
+  groundOut.copy(col).multiplyScalar(0.96);
+  ground.material.color.copy(ground.userData.inside ? groundIn : groundOut);
   scene.fog = new THREE.Fog(col, 30, 90);
 }
 themeScene();
@@ -143,6 +151,10 @@ const matFrame = new THREE.MeshStandardMaterial({color:0x6b5a48, roughness:0.7, 
 const matGlass = new THREE.MeshStandardMaterial({color:0x9cc7e0, transparent:true, opacity:0.28, roughness:0.1, metalness:0.1, clippingPlanes:clip, depthWrite:false});
 const matRail = new THREE.MeshStandardMaterial({color:0x3b4250, roughness:0.5, metalness:0.4, clippingPlanes:clip});
 const matCeil = new THREE.MeshStandardMaterial({color:0xfbfaf7, roughness:1, side:THREE.DoubleSide});
+const matZocalo = new THREE.MeshStandardMaterial({color:0xe2ddd3, roughness:0.6, clippingPlanes:clip});
+const matLeaf = new THREE.MeshStandardMaterial({color:0xb08d67, roughness:0.55, clippingPlanes:clip});
+const matAlu = new THREE.MeshStandardMaterial({color:0x3d4446, roughness:0.4, metalness:0.5, clippingPlanes:clip});
+const matLamp = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0xfff2d6, emissiveIntensity:0.9});
 const M = (color, rough = 0.8, metal = 0) => new THREE.MeshStandardMaterial({color, roughness:rough, metalness:metal, clippingPlanes:clip});
 const FM = {
   tela:M(0x5c6f8a), telaClara:M(0xe9e4da), madera:M(0x9a7350), maderaOsc:M(0x5e4632),
@@ -332,7 +344,10 @@ function construir(p){
   amb.forEach(a => {
     if (["balcon","patio"].includes(a.tipo)) return;
     const c = new THREE.Mesh(new THREE.PlaneGeometry(a.ancho, a.largo), matCeil);
-    c.rotation.x = Math.PI/2; c.position.set(a.x + a.ancho/2, H, a.y + a.largo/2); ceilings.add(c);
+    c.rotation.x = Math.PI/2; c.position.set(a.x + a.ancho/2, H, a.y + a.largo/2);
+    c.castShadow = true; c.receiveShadow = true; ceilings.add(c);
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.03, 24), matLamp);
+    lamp.position.set(a.x + a.ancho/2, H - 0.015, a.y + a.largo/2); ceilings.add(lamp);
   });
   ceilings.visible = mode === "recorrido";
   model.add(ceilings);
@@ -348,9 +363,84 @@ function construir(p){
   bounds.size = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
 
   const s = bounds.size;
-  sun.position.set(bounds.cx + s*0.6, s*1.4 + 4, bounds.cy + s*0.9);
+  const sc = sun.shadow.camera; sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s; sc.near = 0.5; sc.far = s*6 + 40; sc.updateProjectionMatrix();
+  // flecha de norte junto a la maqueta
+  const [nx, nz] = NORTE[p.norte] || NORTE.arriba;
+  const tri = new THREE.Shape(); tri.moveTo(0, 0.55); tri.lineTo(0.32, -0.35); tri.lineTo(0, -0.15); tri.lineTo(-0.32, -0.35); tri.closePath();
+  const arrow = new THREE.Mesh(new THREE.ShapeGeometry(tri), new THREE.MeshBasicMaterial({color:0x758a60, side:THREE.DoubleSide}));
+  arrow.rotation.x = -Math.PI/2; arrow.rotation.z = Math.atan2(-nx, -nz);
+  const off = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY)/2 + 1.2;
+  arrow.position.set(bounds.cx + nx*off, 0.01, bounds.cy + nz*off);
+  arrow.userData.norte = true; model.add(arrow); norteArrow = arrow;
+  construirEntorno();
+  aplicarSol();
+}
+let norteArrow = null;
+
+/* ===================== Entorno: cielo y ciudad (se ve desde adentro) ===================== */
+let entorno = null;
+const skyTex = (() => {
+  const c = document.createElement("canvas"); c.width = 4; c.height = 256; const g = c.getContext("2d");
+  const gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, "#5f8fc4"); gr.addColorStop(0.45, "#a9c6e2"); gr.addColorStop(0.52, "#dfe7ea"); gr.addColorStop(1, "#cfd2c8");
+  g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+})();
+function construirEntorno(){
+  if (entorno){ scene.remove(entorno); entorno.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  entorno = new THREE.Group();
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(140, 32, 16), new THREE.MeshBasicMaterial({map:skyTex, side:THREE.BackSide, fog:false, toneMapped:false}));
+  sky.position.set(bounds.cx, 0, bounds.cy); entorno.add(sky);
+  // manzanas de Rosario alrededor: edificios bajos y medianos, deterministas
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const tonos = [0xd8d2c6, 0xc9c3b8, 0xe4dfd5, 0xbfc4c2, 0xd2c7b4];
+  const mats = tonos.map(c => new THREE.MeshStandardMaterial({color:c, roughness:0.95}));
+  const r0 = bounds.size/2 + 9;
+  for (let i = 0; i < 70; i++){
+    const ang = rnd() * Math.PI * 2, r = r0 + rnd() * 45;
+    const w = 6 + rnd() * 10, d = 6 + rnd() * 10, h = 6 + Math.pow(rnd(), 2) * 40;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats[i % mats.length]);
+    b.position.set(bounds.cx + Math.cos(ang) * r, h/2 - 0.02, bounds.cy + Math.sin(ang) * r);
+    b.rotation.y = Math.round(rnd()*3) * 0.02; b.receiveShadow = true;
+    entorno.add(b);
+  }
+  entorno.visible = mode === "recorrido";
+  scene.add(entorno);
+}
+
+/* ===================== Sol de Rosario ===================== */
+const LAT = -32.95 * Math.PI / 180;
+const sol = {hora: 11, estacion: "invierno"};
+const NORTE = {arriba:[0,-1], abajo:[0,1], izquierda:[-1,0], derecha:[1,0]};
+function posicionSolar(hora, estacion){
+  const dia = estacion === "verano" ? 355 : estacion === "invierno" ? 172 : 80;
+  const dec = 23.44 * Math.PI/180 * Math.sin(2*Math.PI*(284 + dia)/365);
+  const ha = (hora - 12) * 15 * Math.PI/180;
+  const sinAlt = Math.sin(LAT)*Math.sin(dec) + Math.cos(LAT)*Math.cos(dec)*Math.cos(ha);
+  const alt = Math.asin(sinAlt);
+  let cosAz = (Math.sin(dec) - sinAlt*Math.sin(LAT)) / (Math.cos(alt)*Math.cos(LAT));
+  let az = Math.acos(Math.max(-1, Math.min(1, cosAz)));   // desde el norte, hacia el este
+  if (ha > 0) az = 2*Math.PI - az;
+  return {alt, az};
+}
+function aplicarSol(){
+  if (!bounds) return;
+  const {alt, az} = posicionSolar(sol.hora, sol.estacion);
+  const [nx, nz] = NORTE[plan.norte] || NORTE.arriba, ex = -nz, ez = nx;
+  const h = Math.cos(Math.max(alt, 0.02));
+  const dir = new THREE.Vector3((Math.cos(az)*nx + Math.sin(az)*ex)*h, Math.sin(Math.max(alt, 0.02)), (Math.cos(az)*nz + Math.sin(az)*ez)*h).normalize();
+  const dist = bounds.size*2 + 20;
+  sun.position.set(bounds.cx + dir.x*dist, dir.y*dist, bounds.cy + dir.z*dist);
   sun.target.position.set(bounds.cx, 0, bounds.cy);
-  const sc = sun.shadow.camera; sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s; sc.near = 0.5; sc.far = s*5 + 20; sc.updateProjectionMatrix();
+  const k = Math.max(0, Math.sin(alt));
+  sun.intensity = alt <= 0 ? 0 : 0.35 + 1.05*Math.pow(k, 0.5);
+  sun.color.setHSL(0.09, 0.9, 0.6 + 0.35*Math.min(1, k*2.2));
+  hemi.intensity = 0.32 + 0.45*Math.pow(k, 0.6);
+  const txt = document.getElementById("solTxt");
+  if (txt){
+    const hh = Math.floor(sol.hora), mm = Math.round((sol.hora - hh)*60);
+    txt.textContent = alt <= 0 ? "Sin sol a esta hora" : `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")} · sol a ${Math.round(alt*180/Math.PI)}° de altura`;
+  }
 }
 
 function buildRun(run, a, b, group){
@@ -362,25 +452,37 @@ function buildRun(run, a, b, group){
   };
   const solid = [matWall, matPoche];
   switch (run.kind){
-    case "pared": place(L, H, H/2, solid); break;
+    case "pared":
+      place(L, H, H/2, solid);
+      if (run.ori === "h") box(L, 0.08, T + 0.024, c, 0.04, run.line*G, [matZocalo], group, false);
+      else box(T + 0.024, 0.08, L, run.line*G, 0.04, c, [matZocalo], group, false);
+      break;
     case "puerta": case "paso":
       place(len, H - 2.05, (H + 2.05)/2, solid);
       if (run.kind === "puerta"){
         const ft = 0.05;
         if (run.ori === "h"){ box(ft, 2.05, T+0.02, a+ft/2, 1.025, run.line*G, [matFrame], group); box(ft, 2.05, T+0.02, b-ft/2, 1.025, run.line*G, [matFrame], group); }
         else { box(T+0.02, 2.05, ft, run.line*G, 1.025, a+ft/2, [matFrame], group); box(T+0.02, 2.05, ft, run.line*G, 1.025, b-ft/2, [matFrame], group); }
+        // hoja de la puerta, entreabierta
+        const w = len - 0.1, geo = new THREE.BoxGeometry(w, 2.0, 0.04); geo.translate(w/2, 1.0, 0);
+        const leaf = new THREE.Mesh(geo, matLeaf); leaf.castShadow = true; leaf.receiveShadow = true;
+        if (run.ori === "h"){ leaf.position.set(a + 0.05, 0, run.line*G + T/2); leaf.rotation.y = -1.25; }
+        else { leaf.position.set(run.line*G + T/2, 0, a + 0.05); leaf.rotation.y = -Math.PI/2 + 1.25; }
+        group.add(leaf);
       }
       break;
     case "ventanal":
       place(len, H - 2.15, (H + 2.15)/2, solid);
       place(len, 2.15, 1.075, [matGlass]);
-      if (run.ori === "h") box(len, 0.04, T, c, 2.13, run.line*G, [matRail], group);
-      else box(T, 0.04, len, run.line*G, 2.13, c, [matRail], group);
+      carpinteria(run, a, b, 0.02, 2.15, group);
       break;
     case "ventana":
       place(len, 0.95, 0.475, solid);
       place(len, H - 2.1, (H + 2.1)/2, solid);
       place(len, 1.15, 1.525, [matGlass]);
+      carpinteria(run, a, b, 0.95, 2.1, group);
+      if (run.ori === "h") box(len + 0.08, 0.035, T + 0.08, c, 0.95, run.line*G, [matZocalo], group);
+      else box(T + 0.08, 0.035, len + 0.08, run.line*G, 0.95, c, [matZocalo], group);
       break;
     case "baranda":
       place(len, 1.0, 0.5, [matGlass]);
@@ -388,6 +490,16 @@ function buildRun(run, a, b, group){
       else box(0.06, 0.05, len, run.line*G, 1.0, c, [matRail], group);
       break;
   }
+}
+
+// marco de aluminio: perímetro y parante central si la abertura es ancha
+function carpinteria(run, a, b, y0, y1, group){
+  const f = 0.045, len = b - a, c = (a + b)/2, z = run.line*G, ym = (y0 + y1)/2, hh = y1 - y0;
+  const bar = (w, h, pos, y) => run.ori === "h" ? box(w, h, 0.06, pos, y, z, [matAlu], group) : box(0.06, h, w, z, y, pos, [matAlu], group);
+  bar(len, f, c, y1 - f/2); bar(len, f, c, y0 + f/2);
+  bar(f, hh, a + f/2, ym); bar(f, hh, b - f/2, ym);
+  const n = Math.floor(len / 1.0);
+  for (let k = 1; k < n; k++) bar(f, hh, a + len*k/n, ym);
 }
 
 /* ===================== Cámara: maqueta y recorrido ===================== */
@@ -415,7 +527,8 @@ function setMode(m, roomIndex){
   controls.enabled = m === "maqueta";
   cutTarget = (m === "maqueta" && cutOn) ? 1.3 : 50;
   clearTimeout(setMode.t);
-  if (ceilings){ if (m === "maqueta") ceilings.visible = false; else setMode.t = setTimeout(() => { if (mode === "recorrido") ceilings.visible = true; }, 950); }
+  const dentro = v => { ground.userData.inside = v; if (ceilings) ceilings.visible = v; if (entorno) entorno.visible = v; ground.material.color.copy(v ? groundIn : groundOut); scene.fog.far = v ? 400 : 90; scene.fog.near = v ? 200 : 30; };
+  if (m === "maqueta") dentro(false); else setMode.t = setTimeout(() => { if (mode === "recorrido") dentro(true); }, 950);
   setHint();
   if (m === "maqueta"){ maquetaView(true); }
   else { irA(roomIndex ?? entradaIndex(), true); }
@@ -569,6 +682,7 @@ function cargar(raw, key){
   plan = normalizar(raw);
   construir(plan);
   renderPanel();
+  if (typeof iniciarGuia === "function" && document.getElementById("msgs")) setTimeout(iniciarGuia, 0);
   document.querySelectorAll(".preset").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === key));
   mode = "recorrido"; // fuerza la transición de cámara
   maquetaView(false);
@@ -680,6 +794,187 @@ $("read").onclick = async () => {
     $("read").disabled = false; $("busy").hidden = true;
   }
 };
+
+
+/* ===================== Sol: controles ===================== */
+document.getElementById("hora").addEventListener("input", e => { sol.hora = +e.target.value; aplicarSol(); });
+document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+  sol.estacion = b.dataset.e;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  aplicarSol();
+});
+
+/* ===================== Guía con IA ===================== */
+const norm = t => String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const CARD = {
+  arriba:   {top:"norte", bottom:"sur", left:"oeste", right:"este"},
+  abajo:    {top:"sur", bottom:"norte", left:"este", right:"oeste"},
+  izquierda:{top:"este", bottom:"oeste", left:"norte", right:"sur"},
+  derecha:  {top:"oeste", bottom:"este", left:"sur", right:"norte"}
+};
+function resumenPlano(){
+  const card = CARD[plan.norte] || CARD.arriba;
+  const L = v => Math.round(v/G);
+  const amb = plan.ambientes;
+  return {
+    nombre: plan.nombre, zona: plan.zona || "Rosario",
+    superficie_total_m2: +amb.reduce((t, a) => t + a.ancho*a.largo, 0).toFixed(1),
+    ambientes: amb.map((a, i) => {
+      const lados = [
+        ["top", "h", L(a.y), a.x, a.ancho], ["bottom", "h", L(a.y + a.largo), a.x, a.ancho],
+        ["left", "v", L(a.x), a.y, a.largo], ["right", "v", L(a.x + a.ancho), a.y, a.largo]
+      ];
+      return {
+        nombre: a.nombre, tipo: a.tipo, medidas: `${fmt(a.ancho)} x ${fmt(a.largo)} m`, m2: +(a.ancho*a.largo).toFixed(1),
+        paredes: lados.map(([side, ori, line, from, len]) => {
+          const hits = plan.aberturas.filter(o => o.orientacion === ori && o.line === line && o.centro + o.ancho/2 > from + 0.05 && o.centro - o.ancho/2 < from + len - 0.05);
+          const vecino = amb.find((b, j) => j !== i && (ori === "h"
+            ? (L(b.y) === line || L(b.y + b.largo) === line) && b.x < from + len - 0.05 && b.x + b.ancho > from + 0.05
+            : (L(b.x) === line || L(b.x + b.ancho) === line) && b.y < from + len - 0.05 && b.y + b.largo > from + 0.05));
+          const libre = len - hits.filter(o => o.tipo !== "ventana").reduce((t, o) => t + o.ancho, 0);
+          return { orientacion: card[side], largo_m: +len.toFixed(2), largo_libre_m: +Math.max(0, libre).toFixed(2),
+                   da_a: vecino ? vecino.nombre : "exterior", aberturas: hits.map(o => `${o.tipo} de ${fmt(o.ancho)} m`) };
+        })
+      };
+    })
+  };
+}
+
+const SIN = {estar:["living","estar","comedor","sala"], dormitorio:["dormitorio","pieza","habitacion","cuarto","dormir"], bano:["bano","toilette"],
+  cocina:["cocina"], balcon:["balcon","terraza"], entrada:["entrada","hall","recibidor"], pasillo:["pasillo"], lavadero:["lavadero"], patio:["patio"]};
+function buscarAmbiente(q){
+  const n = norm(q), amb = plan.ambientes;
+  // nombre exacto primero (ej. "dormitorio 2"), del más largo al más corto
+  const porNombre = amb.map((a, i) => [norm(a.nombre), i]).sort((x, y) => y[0].length - x[0].length).find(([nm]) => n.includes(nm));
+  if (porNombre) return porNombre[1];
+  for (const [tipo, words] of Object.entries(SIN)) if (words.some(w => n.includes(w))){
+    const c = amb.map((a, i) => [a, i]).filter(([a]) => a.tipo === tipo || (tipo === "estar" && a.tipo === "comedor"));
+    if (c.length) return c.sort((x, y) => y[0].ancho*y[0].largo - x[0].ancho*x[0].largo)[0][1];
+  }
+  return -1;
+}
+function respuestaLocal(q, conIA){
+  const n = norm(q), amb = plan.ambientes, m2 = a => a.ancho*a.largo;
+  const nav = /(llev|lleva|mostr|ir a|vamos|quiero ver|ver el|ver la|entrar|pasame|anda)/.test(n);
+  if (/mas grande|mayor/.test(n)){
+    const dorm = /dorm|pieza|habitac|cuarto/.test(n);
+    const pool = amb.map((a, i) => [a, i]).filter(([a]) => !dorm || a.tipo === "dormitorio");
+    if (pool.length){ const [a, i] = pool.sort((x, y) => m2(y[0]) - m2(x[0]))[0];
+      return {respuesta:`${dorm ? "El dormitorio más grande" : "El ambiente más grande"} es ${a.nombre}: ${fmt(a.ancho)} × ${fmt(a.largo)} m, ${fmt(m2(a))} m². Te llevo.`, ir_a:i}; }
+  }
+  if (/cuant.*(dorm|habitac|pieza)/.test(n)){ const d = amb.filter(a => a.tipo === "dormitorio").length;
+    return {respuesta: d ? `Tiene ${d} dormitorio${d > 1 ? "s" : ""}.` : "Es un monoambiente: el sector de dormir está integrado al estar.", ir_a:null}; }
+  const i = buscarAmbiente(q);
+  const pregunta = /(cuant|que |cual|como|donde|entra|cabe|tiene|recibe|hay)/.test(n);
+  if (i >= 0 && (nav || (!pregunta && n.split(/\s+/).length <= 3))){
+    const a = amb[i];
+    return {respuesta:`Vamos a ${a.nombre}: ${fmt(a.ancho)} × ${fmt(a.largo)} m, ${fmt(m2(a))} m².`, ir_a:i};
+  }
+  if (conIA) return null;
+  const med = n.match(/(\d+(?:[.,]\d+)?)\s*(m|mt|mts|metro|metros|cm)\b/);
+  if (med && /(entra|cabe|meter|pongo|poner)/.test(n)){
+    let largo = parseFloat(med[1].replace(",", ".")); if (med[2] === "cm") largo /= 100;
+    const k = i >= 0 ? i : Math.max(0, amb.findIndex(a => a.tipo === "estar"));
+    const r = resumenPlano().ambientes[k], mejor = r.paredes.reduce((x, y) => y.largo_libre_m > x.largo_libre_m ? y : x);
+    const ok = mejor.largo_libre_m >= largo + 0.2;
+    return {respuesta: ok
+      ? `Sí. La pared ${mejor.orientacion} de ${amb[k].nombre} tiene ${fmt(mejor.largo_libre_m)} m libres, así que un mueble de ${fmt(largo)} m entra con margen.`
+      : `Va justo: la pared libre más larga de ${amb[k].nombre} mide ${fmt(mejor.largo_libre_m)} m. Para ${fmt(largo)} m conviene revisarlo con la inmobiliaria.`, ir_a:k};
+  }
+  if (/(sol|luz|luminos|claro)/.test(n)){
+    const peso = {norte:3, este:1.6, oeste:1.4, sur:0.4};
+    const res = resumenPlano().ambientes.map((r, k) => [k, r.paredes.reduce((t, w) => t + w.aberturas.reduce((u, a) => u + parseFloat(a.replace(/[^0-9,]/g, "").replace(",", ".")) * (/ventan/.test(a) ? 1 : 0), 0) * peso[w.orientacion], 0)]);
+    const [k, sc] = res.sort((x, y) => y[1] - x[1])[0];
+    if (sc > 0){
+      const w = resumenPlano().ambientes[k].paredes.filter(p => p.aberturas.some(a => /ventan/.test(a))).map(p => p.orientacion);
+      return {respuesta:`${amb[k].nombre} es el más luminoso: tiene aberturas al ${[...new Set(w)].join(" y al ")}. Probá mover la barra del sol para ver cómo entra la luz.`, ir_a:k};
+    }
+  }
+  if (i >= 0 && /m2|metros|mide|medida|tamano|grande/.test(n)){
+    const a = amb[i]; return {respuesta:`${a.nombre} mide ${fmt(a.ancho)} × ${fmt(a.largo)} m, ${fmt(m2(a))} m².`, ir_a:i};
+  }
+  if (/total|superficie|cuantos metros|m2/.test(n)) return {respuesta:`La propiedad tiene ${fmt(amb.reduce((t, a) => t + m2(a), 0))} m² cubiertos y semicubiertos, en ${amb.length} ambientes.`, ir_a:null};
+  return {respuesta:"Puedo llevarte a cualquier ambiente y decirte sus medidas. Para consultas más detalladas, la inmobiliaria te responde enseguida.", ir_a:null};
+}
+
+let historial = [];
+async function preguntarIA(q){
+  const actual = mode === "recorrido" ? (plan.ambientes[roomAt(camera.position.x, camera.position.z)] || {}).nombre || "la maqueta" : "la vista de maqueta";
+  const prev = historial.slice(-4).map(h => `${h.rol === "yo" ? "Visitante" : "Guía"}: ${h.texto}`).join("\n");
+  const prompt = `Sos la guía virtual de una propiedad en venta. Respondés las preguntas de posibles compradores mientras recorren su maqueta 3D.
+Datos de la propiedad (medidas en metros, obtenidas del plano):
+${JSON.stringify(resumenPlano())}
+El visitante está en: ${actual}.
+${prev ? "Conversación previa:\n" + prev + "\n" : ""}Pregunta del visitante: "${q}"
+
+Respondé SOLO un objeto JSON: {"respuesta": string, "ir_a": string o null}
+- respuesta: español rioplatense, cálido y profesional, máximo 3 oraciones, con medidas concretas cuando sirvan.
+- Usá solo estos datos. Si preguntan algo que no está (precio, expensas, antigüedad, estado, amenities), decí que eso lo responde la inmobiliaria.
+- Para saber si entra un mueble, compará su medida con "largo_libre_m" de las paredes del ambiente (ya descuenta puertas y pasos) y dejá un margen razonable.
+- Para sol y luz: en Rosario (hemisferio sur) las aberturas al norte reciben más sol todo el año; al este, de mañana; al oeste, de tarde; al sur, casi nada.
+- ir_a: el nombre exacto de un ambiente si conviene mostrarlo o si lo pidieron; si no, null.`;
+  if (sampleFn) return await sampleFn.json(prompt, {modelTier:"quick", cache:false});
+  let r;
+  try { r = await fetch("./api/guia", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({prompt})}); }
+  catch(_) { throw {code:"api"}; }
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw {code:"api", status:r.status, message: body.error};
+  return body.guia;
+}
+
+const msgs = $("msgs");
+function burbuja(rol, texto, extra){
+  const d = document.createElement("div"); d.className = "msg " + rol; d.textContent = texto;
+  if (extra){ const g = document.createElement("span"); g.className = "go"; g.textContent = extra; d.append(g); }
+  msgs.append(d); msgs.scrollTop = msgs.scrollHeight; return d;
+}
+let iaDisponible = null;   // null = no sabemos todavía
+async function preguntar(q){
+  q = q.trim(); if (!q) return;
+  burbuja("yo", q); historial.push({rol:"yo", texto:q});
+  $("gIn").value = ""; $("gSend").disabled = true;
+  const usarIA = iaDisponible !== false;
+  let r = respuestaLocal(q, usarIA);
+  if (!r){
+    const p = burbuja("ella pensando", "Mirando el plano…");
+    try{
+      const data = await preguntarIA(q);
+      const idx = data && data.ir_a ? plan.ambientes.findIndex(a => norm(a.nombre) === norm(data.ir_a)) : -1;
+      r = {respuesta: String((data && data.respuesta) || "No tengo ese dato; la inmobiliaria te lo responde enseguida."), ir_a: idx >= 0 ? idx : null};
+      iaDisponible = true;
+    }catch(e){
+      if (e && (e.code === "not_granted" || e.code === "sampling_disabled" || e.status === 503)) iaDisponible = false;
+      r = respuestaLocal(q, false);
+    }
+    p.remove();
+  }
+  const extra = r.ir_a != null ? "→ Te llevo a " + plan.ambientes[r.ir_a].nombre : "";
+  burbuja("ella", r.respuesta, extra); historial.push({rol:"ella", texto:r.respuesta});
+  if (r.ir_a != null) mode === "recorrido" ? irA(r.ir_a) : setMode("recorrido", r.ir_a);
+  $("gSend").disabled = false;
+}
+function iniciarGuia(){
+  msgs.innerHTML = ""; historial = [];
+  const amb = plan.ambientes, tot = amb.reduce((t, a) => t + a.ancho*a.largo, 0);
+  burbuja("ella", `Hola, soy la guía de ${plan.nombre}. Son ${fmt(tot)} m² en ${amb.length} ambientes. Preguntame lo que quieras o pedime que te lleve a un ambiente.`);
+  const big = amb.map((a, i) => [a, i]).sort((x, y) => y[0].ancho*y[0].largo - x[0].ancho*x[0].largo);
+  const estar = amb.find(a => a.tipo === "estar" || a.tipo === "comedor");
+  const sug = [
+    amb.some(a => a.tipo === "balcon") ? "Llevame al balcón" : `Llevame a ${(amb.find(a => a.tipo === "dormitorio") || big[0][0]).nombre}`,
+    estar ? `¿Entra un sillón de 2,20 m en ${estar.nombre.toLowerCase()}?` : "¿Cuál es el ambiente más grande?",
+    "¿Qué ambiente recibe más sol?",
+    "¿Cuántos m² tiene en total?"
+  ];
+  const box = $("sugs"); box.innerHTML = "";
+  sug.forEach(t => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.onclick = () => preguntar(t); box.append(b); });
+}
+$("gForm").addEventListener("submit", e => { e.preventDefault(); preguntar($("gIn").value); });
+function guia(open){
+  $("guide").hidden = !open; $("gOpen").hidden = open; stage.classList.toggle("g-open", open);
+}
+$("gClose").onclick = () => guia(false);
+$("gOpen").onclick = () => guia(true);
+if (matchMedia("(max-width: 820px)").matches) guia(false);
 
 /* ===================== Loop ===================== */
 function resize(){
