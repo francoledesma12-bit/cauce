@@ -148,3 +148,6 @@ Por pedido de Franco se publicó https://andromedaweb.store/cauce-realismo/app.h
 
 ## 24/10/2026 — Prueba fotográfica 360° independiente
 Pedido de Franco: probar experiencia realista desde fotos. Publicación en /cauce-360/, fuente docs/360. Panorama real Wooden Lounge CC0, un único punto panorámico y carga local de foto propia 2:1. Preservado producto de Cande y variante de materiales. No es un recorrido conectado ni reconstrucción desde fotos sueltas.
+
+## 24/10/2026 — Preparación de reconstrucción GPU con RunPod
+Franco pidió el flujo completo de Tecnoteca y propuso alquilar RunPod. Se preservan cambios de Cande de video/cámara (e05f496). Se preparó docs/runpod/pipeline.py: FFmpeg → COLMAP → control de alineación → Splatfacto → PLY y estados/logs reales. Verificados sintaxis Python, CLI y aceptación/rechazo de alineación con datos sintéticos. NO ejecutado en GPU. Video IMG_6732.MOV aún subiendo, pod sin conectar. No se contrató ni compró API. Faltan ensayo GPU, inspección del video, calidad, visor de splats y panoramas. No afirmar tiempo real ni réplica exacta. El límite de tiempo detiene el proceso, no la facturación del pod.
