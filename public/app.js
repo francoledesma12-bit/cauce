@@ -2241,7 +2241,11 @@ function frame(now){
 }
 
 renderPresets();
-const start = (location.hash || "").slice(1);
+const rawStart = (location.hash || "").slice(1);
+const auto360 = /-360$/.test(rawStart);
+const start = rawStart.replace(/-360$/, "");
+// #montevideo-360: abre directo el recorrido 360° con fotos reales (para la demo)
+if (auto360){ let n = 0; const t = setInterval(() => { if (!$("mFotos").hidden){ clearInterval(t); $("mFotos").click(); } else if (++n > 60) clearInterval(t); }, 250); }
 const k0 = PRESETS[start] ? start : "montevideo";
 resize();
 cargar(PRESETS[k0], k0);
