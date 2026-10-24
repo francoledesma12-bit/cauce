@@ -12,6 +12,7 @@
     <span class="tag">Del plano al recorrido 3D, en un minuto</span>
     <span class="sp"></span>
     <span class="pill">Shippear · Rosario 2026</span>
+    <button class="share-btn" id="share" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z" stroke="currentColor" stroke-width="1.8"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z" fill="currentColor"/></svg>Compartir</button>
   </header>
 
   <aside class="panel">
@@ -57,6 +58,8 @@
       <canvas id="fpano" hidden></canvas>
       <div class="fempty" id="fempty" hidden><div><b>Este ambiente todavía no tiene fotos</b>Agregalas desde el panel o mirá el recorrido 3D.</div></div>
       <div class="fbar"><span class="tag" id="ftag"></span><button id="f3d" type="button">Ver en 3D</button></div>
+      <div class="fmap" id="fmap"></div>
+      <div class="fgo" id="fgo" aria-label="Ir a otro ambiente"></div>
       <button class="fnav prev" id="fprev" type="button" aria-label="Foto anterior">‹</button>
       <button class="fnav next" id="fnext" type="button" aria-label="Foto siguiente">›</button>
     </div>
@@ -83,6 +86,24 @@
       <form id="gForm"><input id="gIn" autocomplete="off" placeholder="Ej.: ¿entra un sillón de 2,20 m?" aria-label="Tu pregunta"><button class="btn" id="gSend">Preguntar</button></form>
     </section>
     <button class="gfab" id="gOpen" hidden>Preguntale a la propiedad</button>
+    <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <div class="card">
+        <h3 id="mTitle">Compartir la propiedad</h3>
+        <div class="row">
+          <div class="qr" id="qr" aria-label="Código QR del recorrido"></div>
+          <div class="mcol">
+            <div><label for="mLink">Link del recorrido</label><input id="mLink" readonly></div>
+            <div><label for="mMsg">Mensaje para WhatsApp</label><textarea id="mMsg"></textarea></div>
+          </div>
+        </div>
+        <p class="nota" id="mNota">El plano viaja dentro del link: no hace falta cuenta ni base de datos. Imprimí el QR en el cartel o mandalo por WhatsApp.</p>
+        <div class="acts">
+          <button class="btn" id="mCopyLink" type="button">Copiar link</button>
+          <button class="btn ghost" id="mCopyMsg" type="button">Copiar mensaje</button>
+          <button class="btn ghost" id="mClose" type="button">Cerrar</button>
+        </div>
+      </div>
+    </div>
     <div class="busy" id="busy" hidden><div class="card"><div class="spin"></div><b>Leyendo el plano…</b><span class="status" id="busytxt">La IA está detectando ambientes, medidas y aberturas.</span></div></div>
   </main>
 </div>
@@ -92,6 +113,7 @@
 <script src="./vendor/RoundedBoxGeometry.js"></script>
 <script src="./vendor/GLTFLoader.js"></script>
 <script src="./vendor/RGBELoader.js"></script>
+<script src="./vendor/qrcode.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>

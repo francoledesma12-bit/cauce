@@ -45,6 +45,7 @@ const html = `<!doctype html>
 <script src="./vendor/RoundedBoxGeometry.js"></script>
 <script src="./vendor/GLTFLoader.js"></script>
 <script src="./vendor/RGBELoader.js"></script>
+<script src="./vendor/qrcode.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>

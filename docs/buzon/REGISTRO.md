@@ -107,6 +107,14 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Prueba:** navegador simulado: carga de manifiestos, 3 fotos en cocina, navegación, etiqueta "foto de ejemplo", vuelta al 3D; sin errores.
 - **Siguiente paso ideal:** reemplazar por fotos reales de una propiedad de Ruiz (con permiso): solo hay que cambiar las imágenes y el fotos.json, sin tocar código.
 
+## 24/10/2026, 14:20 ART — Recorrido entre fotos reales y compartir con QR
+
+- **Pedido de Cande:** "que las fotos reales se vean como un recorrido 3D".
+- **Recorrido fotográfico:** cada foto se proyecta sobre un cilindro alrededor de la cámara (las 360° sobre una esfera): se arrastra para mirar, rueda para acercar y paneo lento automático. Flechas hacia los ambientes conectados, calculadas desde las puertas, pasos y aberturas del plano (no inventadas). Al elegir una, la cámara avanza, la foto se funde y la siguiente aparece desde cerca. Minimapa del plano con "estás acá"; tocar un ambiente camina hasta él.
+- **Compartir (P0 del buzón):** botón "Compartir" con link, QR y mensaje para WhatsApp. El plano viaja comprimido dentro del link (#p=…, deflate + base64url; ~330 caracteres): sirve también para planos leídos por IA, sin base de datos. Ida y vuelta verificada en los 3 planos (idéntico tras normalizar). Las fotos subidas por el usuario no viajan en el link (pendiente: persistencia).
+- **Pruebas:** navegador simulado (flechas, minimapa, QR, mensaje, sin errores) y prueba de ida y vuelta del link en Node.
+- **Pendiente:** ver la transición en un navegador real y en celular.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):
