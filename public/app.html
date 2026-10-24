@@ -9,16 +9,52 @@
 <body><div class="app">
   <header class="top">
     <a class="brand" href="./" aria-label="Cauce, inicio"><span class="mark">c</span>cauce<span class="dot">.</span></a>
-    <span class="tag">Del plano al recorrido 3D, en un minuto</span>
+    <span class="tag">Recorridos virtuales de propiedades para inmobiliarias</span>
     <span class="sp"></span>
     <span class="pill">Shippear · Rosario 2026</span>
     <button class="share-btn" id="share" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z" stroke="currentColor" stroke-width="1.8"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z" fill="currentColor"/></svg>Compartir</button>
   </header>
 
   <aside class="panel">
+    <section class="step hero" id="hero">
+      <h2>Cargá una propiedad con tu celular</h2>
+      <ol class="pasos">
+        <li><span><b>Grabá la propiedad</b> caminando despacio por cada ambiente</span></li>
+        <li><span><b>Te avisamos</b> en el momento si falta mostrar algo</span></li>
+        <li><span><b>Tus clientes la recorren</b> y le preguntan lo que quieran, a cualquier hora</span></li>
+      </ol>
+      <button class="btn grande" id="vcam" type="button"><span class="rec"></span>Grabar la propiedad</button>
+      <div class="alt">
+        <button class="btn ghost" id="vcam360" type="button">◎ Foto 360°</button>
+        <label class="btn ghost" id="vdrop" for="vfile">Subir un video</label>
+      </div>
+      <input type="file" id="vfile" accept="video/*" hidden>
+      <div class="vlive" id="vlive" hidden>
+        <video id="vcamv" muted playsinline autoplay></video>
+        <canvas class="vpanoprev" id="vpanoprev" width="720" height="120" hidden></canvas>
+        <div class="vlivebar"><b class="vtip" id="vtip"></b><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
+          <div class="vliveacts"><button class="btn ghost" id="vcancel" type="button">Cancelar</button><button class="btn" id="vstop" type="button">Terminar</button></div></div>
+      </div>
+      <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>
+      <div class="vres" id="vres" hidden>
+        <p class="vnombre" id="vsub"></p>
+        <div class="vprog"><i id="vbar"></i></div>
+        <div class="vcalidad" id="vcalidad" hidden></div>
+        <div class="vframes" id="vframes"></div>
+        <button class="btn" id="vgo" disabled>Armar el recorrido</button>
+        <button class="btn ghost" id="vtour" type="button" hidden>▶ Ver el recorrido</button>
+        <div class="status" id="vstatus" role="status"></div>
+        <details class="vtec"><summary>Detalle técnico del análisis</summary>
+          <dl class="vstats" id="vstats"></dl>
+          <canvas class="vchart" id="vchart" width="560" height="90" aria-label="Luz y cambios de toma a lo largo del video"></canvas>
+          <p class="vleg"><span class="l1">luz</span><span class="l2">cambio de imagen</span><span class="l3">toma nueva</span></p>
+        </details>
+      </div>
+    </section>
+
     <section class="step">
-      <h2>Propiedades</h2>
-      <p class="help">Elegí una para recorrerla por dentro.</p>
+      <h2>Propiedades publicadas</h2>
+      <p class="help">Recorrelas como lo haría un comprador.</p>
       <div class="presets" id="presets"></div>
     </section>
 
@@ -29,36 +65,7 @@
     </section>
 
     <details class="crear" id="crear">
-      <summary><span>Crear una propiedad nueva</span><small>Con un video, la cámara, el plano o fotos</small></summary>
-      <div class="sub">
-        <h3>Desde un video o la cámara</h3>
-        <p class="help">Recorré el lugar con el celular (10 a 90 s). Se analiza acá, en tu navegador.</p>
-      <p class="help">Recorré el lugar con el celular (10 a 90 s). El video se analiza acá, en tu navegador.</p>
-      <label class="drop" id="vdrop" for="vfile">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 10l5-3v10l-5-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        <span>Elegir video<small id="vsub">MP4 o MOV del celular</small></span>
-      </label>
-      <input type="file" id="vfile" accept="video/*" hidden>
-      <button class="btn vcam" id="vcam360" type="button">◎ Grabar en 360° (girá sobre vos)</button>
-      <button class="btn ghost vcam" id="vcam" type="button">● Grabar caminando, en vivo</button>
-      <div class="vlive" id="vlive" hidden>
-        <video id="vcamv" muted playsinline autoplay></video>
-        <canvas class="vpanoprev" id="vpanoprev" width="720" height="120" hidden></canvas>
-        <div class="vlivebar"><b class="vtip" id="vtip"></b><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
-          <div class="vliveacts"><button class="btn ghost" id="vcancel" type="button">Cancelar</button><button class="btn" id="vstop" type="button">Terminar y armar en 3D</button></div></div>
-      </div>
-      <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>
-      <div class="vres" id="vres" hidden>
-        <div class="vprog"><i id="vbar"></i></div>
-        <dl class="vstats" id="vstats"></dl>
-        <canvas class="vchart" id="vchart" width="560" height="90" aria-label="Luz y cambios de toma a lo largo del video"></canvas>
-        <p class="vleg"><span class="l1">luz</span><span class="l2">cambio de imagen</span><span class="l3">toma nueva</span></p>
-        <div class="vframes" id="vframes"></div>
-        <button class="btn" id="vgo" disabled>Armar el espacio en 3D</button>
-        <button class="btn ghost" id="vtour" type="button" hidden>▶ Ver el recorrido del video</button>
-        <div class="status" id="vstatus" role="status"></div>
-      </div>
-      </div>
+      <summary><span>Otras formas de crear</span><small>Desde un plano o con fotos sueltas</small></summary>
       <div class="sub">
         <h3>Desde el plano</h3>
       <div class="ai">

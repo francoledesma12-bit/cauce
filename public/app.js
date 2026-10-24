@@ -1077,7 +1077,7 @@ async function analizarVideo(file){
   if (!file || !/^video\//.test(file.type)){ $("vres").hidden = false; vstatus("Elegí un archivo de video (MP4 o MOV).", "err"); return; }
   VIDEO = null;
   $("vres").hidden = false; $("vgo").disabled = true; $("vframes").innerHTML = ""; $("vstats").innerHTML = "";
-  $("vbar").style.width = "0"; $("vsub").textContent = file.name; vstatus("Abriendo el video…");
+  $("vbar").style.width = "0"; $("vsub").textContent = "Video: " + file.name; $("vcalidad").hidden = true; $("vtour").hidden = true; vstatus("Abriendo el video…");
   if (vEl.src) URL.revokeObjectURL(vEl.src);
   vEl.src = URL.createObjectURL(file);
   const cargado = evento(vEl, "loadeddata", 20000);
@@ -1165,7 +1165,6 @@ document.body.append($("vlive"));   // fuera del panel, para que ocupe toda la p
 $("vcam").onclick = () => abrirCamara(false);
 $("vcam360").onclick = () => abrirCamara(true);
 async function abrirCamara(modo360){
-  $("crear").open = true;
   $("vres").hidden = false; vstatus("");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ vstatus("Este navegador no deja usar la cámara desde la página. Usá «Elegir video».", "err"); return; }
   try{ cam = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: modo360 ? 1920 : 1280}, height: {ideal: modo360 ? 1080 : 720}}, audio: false}); }
@@ -1182,7 +1181,7 @@ async function abrirCamara(modo360){
   for (let k = 0; k < 50 && !v.videoWidth; k++) await new Promise(r => setTimeout(r, 100));
   if (!v.videoWidth){ pararCamara(); vstatus("La cámara no mandó imagen. Probá de nuevo.", "err"); return; }
   VIDEO = null; $("vgo").disabled = true; $("vframes").innerHTML = ""; $("vstats").innerHTML = ""; $("vbar").style.width = "0";
-  $("vsub").textContent = modo360 ? "Grabación 360°" : "Grabación en vivo"; $("vlive").hidden = false;
+  $("vsub").textContent = modo360 ? "Foto 360° con la cámara" : "Recorrido grabado con la cámara"; $("vcalidad").hidden = true; $("vtour").hidden = true; $("vlive").hidden = false;
   $("vliveayuda").textContent = modo360 ? "Quedate en el centro y girá despacio hacia la derecha hasta dar la vuelta completa" : "Caminá despacio y mostrá cada ambiente";
   $("vpanoprev").hidden = !modo360; $("vtip").textContent = ""; tipHasta = 0;
   const pan = modo360 ? new Panoramica(v) : null;
@@ -1246,7 +1245,7 @@ async function abrirCamara(modo360){
     if (muestras.length < 4){ vstatus("Grabá al menos 2 segundos recorriendo el lugar.", "err"); return; }
     const p360 = pan ? pan.equirectangular() : null;
     await resumirMuestras(muestras, {nombre: pan ? "Grabación 360°" : "Grabación en vivo", duracion: dur, ancho: vw, alto: vh, t0: performance.now()}, null);
-    VIDEO.videoUrl = videoUrl; VIDEO.huecos = huecos;
+    VIDEO.videoUrl = videoUrl; VIDEO.huecos = huecos; pintarCalidad();
     VIDEO.consejo = (huecos.length
       ? `Quedaron ${huecos.length} hueco${huecos.length > 1 ? "s" : ""} (en ${huecos.map(h => mmss(h.t)).join(", ")}, marcados en rojo en la barra): volvé a grabar esas partes más despacio. `
       : "Grabación de corrido, sin huecos. ") + (huecos.length ? (VIDEO.consejo || "").replace("Buena grabación.", "") : (VIDEO.consejo || ""));
@@ -1424,7 +1423,23 @@ function mostrarAnalisis(){
   if (v.luz < 0.3) mejoras.push("sumá luz");
   if (v.tomas < 2 && v.duracion > 12) mejoras.push("mostrá más ángulos del lugar");
   v.consejo = mejoras.length ? `Para más precisión: ${mejoras.join(", ")}.` : "Buena grabación.";
-  vstatus(`Listo en ${v.segundos.toFixed(1)} s: ${v.claves.length} cuadros clave elegidos por nitidez y cambio de toma. ${v.consejo}`, mejoras.length ? "" : "ok");
+  vstatus(`Análisis listo en ${v.segundos.toFixed(1)} s. ${v.consejo}`, mejoras.length ? "" : "ok");
+  pintarCalidad();
+}
+
+// Resumen para cualquier persona: un semáforo de calidad con el motivo, en vez de números técnicos
+function pintarCalidad(){
+  const v = VIDEO; if (!v) return;
+  const prob = [];
+  if (v.duracion < 10) prob.push("muy corto");
+  if (v.borrosos > 0.25) prob.push("bastante movido");
+  if (v.luz < 0.3) prob.push("poca luz");
+  if (v.huecos && v.huecos.length) prob.push(v.huecos.length + " hueco" + (v.huecos.length > 1 ? "s" : ""));
+  const nivel = !prob.length ? "buena" : prob.length === 1 ? "regular" : "mala";
+  const q = $("vcalidad"); q.hidden = false; q.className = "vcalidad " + nivel;
+  q.innerHTML = "<i></i><div><b></b><br><span></span></div>";
+  q.querySelector("b").textContent = "Calidad de la grabación: " + {buena: "buena", regular: "regular", mala: "mejorable"}[nivel];
+  q.querySelector("span").textContent = `${mmss(v.duracion)} · ${v.claves.length} cuadros clave` + (prob.length ? " · " + prob.join(", ") : " · de corrido y nítida");
 }
 
 function datosVideo(){
@@ -1490,7 +1505,7 @@ $("vgo").onclick = async () => {
     cargar({nombre: "Escena de demostración", origen: "demo",
       ambientes: [{nombre: "Espacio del video", tipo: "estar", x: 0, y: 0, ancho: 4.5, largo: 5}],
       aberturas: [{tipo: "puerta", orientacion: "h", x: 1, y: 0, ancho: 0.9}, {tipo: "ventanal", orientacion: "h", x: 2.8, y: 5, ancho: 2}]}, null);
-    vstatus(`La IA no pudo leer el video (${(e && e.message) || "sin respuesta"}). Mostramos una escena de demostración con tus cuadros reales.`, "err");
+    vstatus(`No pudimos reconocer los ambientes en este momento (${(e && e.message) || "sin respuesta"}). Tu video se puede ver igual; la maqueta es de demostración. Probá «Armar el recorrido» de nuevo en unos segundos.`, "err");
   }
   // los cuadros reales del video quedan como fotos de cada ambiente (visor para caminar adentro de la foto)
   let previo = 0;

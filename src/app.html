@@ -159,8 +159,27 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 @media (max-width:820px){.fmap{width:110px;bottom:56px}.fgo{max-width:calc(100% - 140px);left:auto;right:10px;transform:none;justify-content:flex-end}.stage.g-open .fnav.next{right:14px}}
 .fempty{position:absolute;inset:0;display:grid;place-items:center;color:#e9efe6;text-align:center;padding:24px}
 .fempty b{font-family:var(--f-display);font-size:18px;display:block;margin-bottom:6px}
-.vres{display:grid;gap:10px;margin-top:10px}
-.vcam{width:100%;margin-top:8px}
+.vres{display:grid;gap:10px;margin-top:12px}
+.hero{background:linear-gradient(160deg,var(--blue-soft,#e6efe4),var(--panel));border:1px solid var(--line);border-radius:14px;padding:16px}
+.hero h2{font-size:18px;margin-bottom:10px}
+.pasos{list-style:none;counter-reset:p;margin:0 0 14px;padding:0;display:grid;gap:7px}
+.pasos li{counter-increment:p;display:flex;gap:10px;align-items:baseline;font-size:13.5px;color:var(--muted)}
+.pasos li::before{content:counter(p);flex:none;width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--panel);font:600 11px/20px var(--f-mono);text-align:center}
+.pasos b{color:var(--ink);font-weight:600}
+.btn.grande{width:100%;padding:14px;font-size:16px;font-weight:600;border-radius:10px}
+.btn .rec{width:12px;height:12px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 3px rgba(255,59,48,.25)}
+.alt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.alt .btn{padding:10px 8px;font-size:13.5px;cursor:pointer}
+.alt label.btn.over{border-style:dashed}
+.vnombre{margin:0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vcalidad{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--paper)}
+.vcalidad b{font-size:14px}
+.vcalidad span{font-size:12.5px;color:var(--muted)}
+.vcalidad i{width:10px;height:10px;border-radius:50%;flex:none;background:var(--ok)}
+.vcalidad.regular i{background:var(--warn)}
+.vcalidad.mala i{background:var(--brick)}
+.vtec summary{cursor:pointer;font-size:12.5px;color:var(--muted)}
+.vtec[open]{display:grid;gap:8px}
 .vlive{position:fixed;inset:0;z-index:50;background:#000;display:flex;flex-direction:column}
 .vlive video{flex:1;min-height:0;width:100%;object-fit:cover}
 .vlivebar{display:grid;gap:6px;padding:12px max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-bottom,0px));background:rgba(10,20,17,.92);color:#fff}
@@ -278,16 +297,52 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
 <div class="app">
   <header class="top">
     <a class="brand" href="./" aria-label="Cauce, inicio"><span class="mark">c</span>cauce<span class="dot">.</span></a>
-    <span class="tag">Del plano al recorrido 3D, en un minuto</span>
+    <span class="tag">Recorridos virtuales de propiedades para inmobiliarias</span>
     <span class="sp"></span>
     <span class="pill">Shippear · Rosario 2026</span>
     <button class="share-btn" id="share" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z" stroke="currentColor" stroke-width="1.8"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z" fill="currentColor"/></svg>Compartir</button>
   </header>
 
   <aside class="panel">
+    <section class="step hero" id="hero">
+      <h2>Cargá una propiedad con tu celular</h2>
+      <ol class="pasos">
+        <li><span><b>Grabá la propiedad</b> caminando despacio por cada ambiente</span></li>
+        <li><span><b>Te avisamos</b> en el momento si falta mostrar algo</span></li>
+        <li><span><b>Tus clientes la recorren</b> y le preguntan lo que quieran, a cualquier hora</span></li>
+      </ol>
+      <button class="btn grande" id="vcam" type="button"><span class="rec"></span>Grabar la propiedad</button>
+      <div class="alt">
+        <button class="btn ghost" id="vcam360" type="button">◎ Foto 360°</button>
+        <label class="btn ghost" id="vdrop" for="vfile">Subir un video</label>
+      </div>
+      <input type="file" id="vfile" accept="video/*" hidden>
+      <div class="vlive" id="vlive" hidden>
+        <video id="vcamv" muted playsinline autoplay></video>
+        <canvas class="vpanoprev" id="vpanoprev" width="720" height="120" hidden></canvas>
+        <div class="vlivebar"><b class="vtip" id="vtip"></b><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
+          <div class="vliveacts"><button class="btn ghost" id="vcancel" type="button">Cancelar</button><button class="btn" id="vstop" type="button">Terminar</button></div></div>
+      </div>
+      <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>
+      <div class="vres" id="vres" hidden>
+        <p class="vnombre" id="vsub"></p>
+        <div class="vprog"><i id="vbar"></i></div>
+        <div class="vcalidad" id="vcalidad" hidden></div>
+        <div class="vframes" id="vframes"></div>
+        <button class="btn" id="vgo" disabled>Armar el recorrido</button>
+        <button class="btn ghost" id="vtour" type="button" hidden>▶ Ver el recorrido</button>
+        <div class="status" id="vstatus" role="status"></div>
+        <details class="vtec"><summary>Detalle técnico del análisis</summary>
+          <dl class="vstats" id="vstats"></dl>
+          <canvas class="vchart" id="vchart" width="560" height="90" aria-label="Luz y cambios de toma a lo largo del video"></canvas>
+          <p class="vleg"><span class="l1">luz</span><span class="l2">cambio de imagen</span><span class="l3">toma nueva</span></p>
+        </details>
+      </div>
+    </section>
+
     <section class="step">
-      <h2>Propiedades</h2>
-      <p class="help">Elegí una para recorrerla por dentro.</p>
+      <h2>Propiedades publicadas</h2>
+      <p class="help">Recorrelas como lo haría un comprador.</p>
       <div class="presets" id="presets"></div>
     </section>
 
@@ -298,36 +353,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
     </section>
 
     <details class="crear" id="crear">
-      <summary><span>Crear una propiedad nueva</span><small>Con un video, la cámara, el plano o fotos</small></summary>
-      <div class="sub">
-        <h3>Desde un video o la cámara</h3>
-        <p class="help">Recorré el lugar con el celular (10 a 90 s). Se analiza acá, en tu navegador.</p>
-      <p class="help">Recorré el lugar con el celular (10 a 90 s). El video se analiza acá, en tu navegador.</p>
-      <label class="drop" id="vdrop" for="vfile">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 10l5-3v10l-5-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        <span>Elegir video<small id="vsub">MP4 o MOV del celular</small></span>
-      </label>
-      <input type="file" id="vfile" accept="video/*" hidden>
-      <button class="btn vcam" id="vcam360" type="button">◎ Grabar en 360° (girá sobre vos)</button>
-      <button class="btn ghost vcam" id="vcam" type="button">● Grabar caminando, en vivo</button>
-      <div class="vlive" id="vlive" hidden>
-        <video id="vcamv" muted playsinline autoplay></video>
-        <canvas class="vpanoprev" id="vpanoprev" width="720" height="120" hidden></canvas>
-        <div class="vlivebar"><b class="vtip" id="vtip"></b><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
-          <div class="vliveacts"><button class="btn ghost" id="vcancel" type="button">Cancelar</button><button class="btn" id="vstop" type="button">Terminar y armar en 3D</button></div></div>
-      </div>
-      <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>
-      <div class="vres" id="vres" hidden>
-        <div class="vprog"><i id="vbar"></i></div>
-        <dl class="vstats" id="vstats"></dl>
-        <canvas class="vchart" id="vchart" width="560" height="90" aria-label="Luz y cambios de toma a lo largo del video"></canvas>
-        <p class="vleg"><span class="l1">luz</span><span class="l2">cambio de imagen</span><span class="l3">toma nueva</span></p>
-        <div class="vframes" id="vframes"></div>
-        <button class="btn" id="vgo" disabled>Armar el espacio en 3D</button>
-        <button class="btn ghost" id="vtour" type="button" hidden>▶ Ver el recorrido del video</button>
-        <div class="status" id="vstatus" role="status"></div>
-      </div>
-      </div>
+      <summary><span>Otras formas de crear</span><small>Desde un plano o con fotos sueltas</small></summary>
       <div class="sub">
         <h3>Desde el plano</h3>
       <div class="ai">
@@ -1511,7 +1537,7 @@ async function analizarVideo(file){
   if (!file || !/^video\//.test(file.type)){ $("vres").hidden = false; vstatus("Elegí un archivo de video (MP4 o MOV).", "err"); return; }
   VIDEO = null;
   $("vres").hidden = false; $("vgo").disabled = true; $("vframes").innerHTML = ""; $("vstats").innerHTML = "";
-  $("vbar").style.width = "0"; $("vsub").textContent = file.name; vstatus("Abriendo el video…");
+  $("vbar").style.width = "0"; $("vsub").textContent = "Video: " + file.name; $("vcalidad").hidden = true; $("vtour").hidden = true; vstatus("Abriendo el video…");
   if (vEl.src) URL.revokeObjectURL(vEl.src);
   vEl.src = URL.createObjectURL(file);
   const cargado = evento(vEl, "loadeddata", 20000);
@@ -1599,7 +1625,6 @@ document.body.append($("vlive"));   // fuera del panel, para que ocupe toda la p
 $("vcam").onclick = () => abrirCamara(false);
 $("vcam360").onclick = () => abrirCamara(true);
 async function abrirCamara(modo360){
-  $("crear").open = true;
   $("vres").hidden = false; vstatus("");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ vstatus("Este navegador no deja usar la cámara desde la página. Usá «Elegir video».", "err"); return; }
   try{ cam = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: modo360 ? 1920 : 1280}, height: {ideal: modo360 ? 1080 : 720}}, audio: false}); }
@@ -1616,7 +1641,7 @@ async function abrirCamara(modo360){
   for (let k = 0; k < 50 && !v.videoWidth; k++) await new Promise(r => setTimeout(r, 100));
   if (!v.videoWidth){ pararCamara(); vstatus("La cámara no mandó imagen. Probá de nuevo.", "err"); return; }
   VIDEO = null; $("vgo").disabled = true; $("vframes").innerHTML = ""; $("vstats").innerHTML = ""; $("vbar").style.width = "0";
-  $("vsub").textContent = modo360 ? "Grabación 360°" : "Grabación en vivo"; $("vlive").hidden = false;
+  $("vsub").textContent = modo360 ? "Foto 360° con la cámara" : "Recorrido grabado con la cámara"; $("vcalidad").hidden = true; $("vtour").hidden = true; $("vlive").hidden = false;
   $("vliveayuda").textContent = modo360 ? "Quedate en el centro y girá despacio hacia la derecha hasta dar la vuelta completa" : "Caminá despacio y mostrá cada ambiente";
   $("vpanoprev").hidden = !modo360; $("vtip").textContent = ""; tipHasta = 0;
   const pan = modo360 ? new Panoramica(v) : null;
@@ -1680,7 +1705,7 @@ async function abrirCamara(modo360){
     if (muestras.length < 4){ vstatus("Grabá al menos 2 segundos recorriendo el lugar.", "err"); return; }
     const p360 = pan ? pan.equirectangular() : null;
     await resumirMuestras(muestras, {nombre: pan ? "Grabación 360°" : "Grabación en vivo", duracion: dur, ancho: vw, alto: vh, t0: performance.now()}, null);
-    VIDEO.videoUrl = videoUrl; VIDEO.huecos = huecos;
+    VIDEO.videoUrl = videoUrl; VIDEO.huecos = huecos; pintarCalidad();
     VIDEO.consejo = (huecos.length
       ? `Quedaron ${huecos.length} hueco${huecos.length > 1 ? "s" : ""} (en ${huecos.map(h => mmss(h.t)).join(", ")}, marcados en rojo en la barra): volvé a grabar esas partes más despacio. `
       : "Grabación de corrido, sin huecos. ") + (huecos.length ? (VIDEO.consejo || "").replace("Buena grabación.", "") : (VIDEO.consejo || ""));
@@ -1858,7 +1883,23 @@ function mostrarAnalisis(){
   if (v.luz < 0.3) mejoras.push("sumá luz");
   if (v.tomas < 2 && v.duracion > 12) mejoras.push("mostrá más ángulos del lugar");
   v.consejo = mejoras.length ? `Para más precisión: ${mejoras.join(", ")}.` : "Buena grabación.";
-  vstatus(`Listo en ${v.segundos.toFixed(1)} s: ${v.claves.length} cuadros clave elegidos por nitidez y cambio de toma. ${v.consejo}`, mejoras.length ? "" : "ok");
+  vstatus(`Análisis listo en ${v.segundos.toFixed(1)} s. ${v.consejo}`, mejoras.length ? "" : "ok");
+  pintarCalidad();
+}
+
+// Resumen para cualquier persona: un semáforo de calidad con el motivo, en vez de números técnicos
+function pintarCalidad(){
+  const v = VIDEO; if (!v) return;
+  const prob = [];
+  if (v.duracion < 10) prob.push("muy corto");
+  if (v.borrosos > 0.25) prob.push("bastante movido");
+  if (v.luz < 0.3) prob.push("poca luz");
+  if (v.huecos && v.huecos.length) prob.push(v.huecos.length + " hueco" + (v.huecos.length > 1 ? "s" : ""));
+  const nivel = !prob.length ? "buena" : prob.length === 1 ? "regular" : "mala";
+  const q = $("vcalidad"); q.hidden = false; q.className = "vcalidad " + nivel;
+  q.innerHTML = "<i></i><div><b></b><br><span></span></div>";
+  q.querySelector("b").textContent = "Calidad de la grabación: " + {buena: "buena", regular: "regular", mala: "mejorable"}[nivel];
+  q.querySelector("span").textContent = `${mmss(v.duracion)} · ${v.claves.length} cuadros clave` + (prob.length ? " · " + prob.join(", ") : " · de corrido y nítida");
 }
 
 function datosVideo(){
@@ -1924,7 +1965,7 @@ $("vgo").onclick = async () => {
     cargar({nombre: "Escena de demostración", origen: "demo",
       ambientes: [{nombre: "Espacio del video", tipo: "estar", x: 0, y: 0, ancho: 4.5, largo: 5}],
       aberturas: [{tipo: "puerta", orientacion: "h", x: 1, y: 0, ancho: 0.9}, {tipo: "ventanal", orientacion: "h", x: 2.8, y: 5, ancho: 2}]}, null);
-    vstatus(`La IA no pudo leer el video (${(e && e.message) || "sin respuesta"}). Mostramos una escena de demostración con tus cuadros reales.`, "err");
+    vstatus(`No pudimos reconocer los ambientes en este momento (${(e && e.message) || "sin respuesta"}). Tu video se puede ver igual; la maqueta es de demostración. Probá «Armar el recorrido» de nuevo en unos segundos.`, "err");
   }
   // los cuadros reales del video quedan como fotos de cada ambiente (visor para caminar adentro de la foto)
   let previo = 0;
