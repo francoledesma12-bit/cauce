@@ -1,0 +1,86 @@
+[
+  {
+    "id": "wood_floor",
+    "map": "Diffuse",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor/wood_floor_diff_1k.jpg",
+    "bytes": 734493,
+    "license": "CC0"
+  },
+  {
+    "id": "wood_floor",
+    "map": "nor_gl",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor/wood_floor_nor_gl_1k.jpg",
+    "bytes": 423303,
+    "license": "CC0"
+  },
+  {
+    "id": "wood_floor",
+    "map": "Rough",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor/wood_floor_rough_1k.jpg",
+    "bytes": 527754,
+    "license": "CC0"
+  },
+  {
+    "id": "floor_tiles_06",
+    "map": "Diffuse",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/floor_tiles_06/floor_tiles_06_diff_1k.jpg",
+    "bytes": 356257,
+    "license": "CC0"
+  },
+  {
+    "id": "floor_tiles_06",
+    "map": "nor_gl",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/floor_tiles_06/floor_tiles_06_nor_gl_1k.jpg",
+    "bytes": 121299,
+    "license": "CC0"
+  },
+  {
+    "id": "floor_tiles_06",
+    "map": "Rough",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/floor_tiles_06/floor_tiles_06_rough_1k.jpg",
+    "bytes": 114013,
+    "license": "CC0"
+  },
+  {
+    "id": "grey_plaster",
+    "map": "Diffuse",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_plaster/grey_plaster_diff_1k.jpg",
+    "bytes": 704079,
+    "license": "CC0"
+  },
+  {
+    "id": "grey_plaster",
+    "map": "nor_gl",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_plaster/grey_plaster_nor_gl_1k.jpg",
+    "bytes": 355288,
+    "license": "CC0"
+  },
+  {
+    "id": "grey_plaster",
+    "map": "Rough",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_plaster/grey_plaster_rough_1k.jpg",
+    "bytes": 635335,
+    "license": "CC0"
+  },
+  {
+    "id": "painted_plaster_wall",
+    "map": "Diffuse",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg",
+    "bytes": 686726,
+    "license": "CC0"
+  },
+  {
+    "id": "painted_plaster_wall",
+    "map": "nor_gl",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg",
+    "bytes": 900461,
+    "license": "CC0"
+  },
+  {
+    "id": "painted_plaster_wall",
+    "map": "Rough",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg",
+    "bytes": 354762,
+    "license": "CC0"
+  }
+]

@@ -110,3 +110,7 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - Resultado observado:
 - Límites o errores:
 - Siguiente paso:
+
+## 24/10/2026 — Realismo editable, variante aislada
+
+Por pedido de Franco se publicó https://andromedaweb.store/cauce-realismo/app.html, preservando la entrega de Cande aac98ea. Pisos PBR descargados CC0, pintura y revestimientos, escala, brillo y exposición en vivo. Fuente, pruebas y límites en docs/realismo/README.md. No se modifican archivos del producto. Falta completar iluminación global y modernizar loaders; no se declara fotorrealismo terminado.
