@@ -1249,7 +1249,7 @@ async function abrirCamara(modo360){
     VIDEO.videoUrl = videoUrl; VIDEO.huecos = huecos;
     VIDEO.consejo = (huecos.length
       ? `Quedaron ${huecos.length} hueco${huecos.length > 1 ? "s" : ""} (en ${huecos.map(h => mmss(h.t)).join(", ")}, marcados en rojo en la barra): volvé a grabar esas partes más despacio. `
-      : "Grabación de corrido, sin huecos. ") + (VIDEO.consejo || "");
+      : "Grabación de corrido, sin huecos. ") + (huecos.length ? (VIDEO.consejo || "").replace("Buena grabación.", "") : (VIDEO.consejo || ""));
     if (p360){ VIDEO.pano = p360; vstatus(`360° armado: ${p360.ancho}×${p360.alto} px, ${p360.cerrada ? "vuelta completa" : "cubre ~" + p360.grados + "° (no llegaste a la vuelta entera)"}.`, "ok"); }
     $("vgo").click();   // al terminar se arma solo
   };
@@ -1567,7 +1567,10 @@ function abrirVideoRecorrido(){
     b.onclick = () => { const p = $("vplay"); p.currentTime = cp.ini + 0.05; p.play().catch(() => {}); };
     tl.append(b);
   });
-  const p = $("vplay");
+  const p = $("vplay"), el = $("vtourv");
+  // en el celular ocupa toda la pantalla (fuera del panel); en la compu queda dentro del escenario, debajo de la guía
+  if (matchMedia("(max-width: 820px)").matches){ if (el.parentNode !== document.body) document.body.append(el); }
+  else if (el.parentNode !== stage) stage.insertBefore(el, $("fotos"));
   if (p.src !== v.videoUrl) p.src = v.videoUrl;
   $("vtourv").hidden = false; p.currentTime = 0; p.play().catch(() => {});
   return true;
@@ -1590,6 +1593,7 @@ $("vplay").addEventListener("play", actualizarVideoRecorrido);
 $("vplay").addEventListener("pause", actualizarVideoRecorrido);
 $("vpp").onclick = () => { const p = $("vplay"); p.paused ? p.play().catch(() => {}) : p.pause(); };
 $("vclose").onclick = () => { $("vplay").pause(); $("vtourv").hidden = true; };
+$("vpreg").onclick = () => { $("vplay").pause(); $("vtourv").hidden = true; guia(true); stage.scrollIntoView({behavior: "smooth", block: "start"}); setTimeout(() => $("gIn").focus(), 400); };
 $("vfotos").onclick = () => { $("vplay").pause(); $("vtourv").hidden = true; recorrerVideo(); };
 $("vfile").addEventListener("change", e => analizarVideo(e.target.files[0]));
 const vdrop = $("vdrop");
