@@ -44,7 +44,7 @@
       <div class="vlive" id="vlive" hidden>
         <video id="vcamv" muted playsinline autoplay></video>
         <canvas class="vpanoprev" id="vpanoprev" width="720" height="120" hidden></canvas>
-        <div class="vlivebar"><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
+        <div class="vlivebar"><b class="vtip" id="vtip"></b><span id="vlivetxt">Preparando la cámara…</span><small id="vliveayuda">Caminá despacio y mostrá cada ambiente</small>
           <div class="vliveacts"><button class="btn ghost" id="vcancel" type="button">Cancelar</button><button class="btn" id="vstop" type="button">Terminar y armar en 3D</button></div></div>
       </div>
       <video class="vsrc" id="vsrc" muted playsinline preload="auto"></video>
@@ -87,6 +87,15 @@
   <main class="stage g-open" id="stage">
     <canvas id="gl"></canvas>
     <div class="labels" id="labels"></div>
+    <div class="vtourv" id="vtourv" hidden>
+      <video id="vplay" playsinline muted loop></video>
+      <div class="vroom" id="vroom"></div>
+      <div class="vcap" id="vcap"></div>
+      <div class="vbar2">
+        <div class="vtlw"><div class="vtl" id="vtl"></div><i class="vhead" id="vhead"></i></div>
+        <div class="vctl"><button type="button" id="vpp">❚❚</button><button type="button" id="vfotos">Fotos y 360°</button><button type="button" id="vclose">Ver maqueta 3D</button></div>
+      </div>
+    </div>
     <div class="fotos" id="fotos" hidden>
       <div class="bg" id="fbg"></div>
       <img class="ph" id="fimg" alt="">
