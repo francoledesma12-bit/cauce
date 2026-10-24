@@ -131,6 +131,14 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Móvil:** en pantallas ≤820 px se oculta el panel del sol y la guía arranca cerrada (antes tapaban el visor; verificado con captura en el navegador del escritorio de Cande).
 - **Créditos:** `public/assets/CREDITOS.txt`.
 
+## 24/10/2026, 14:55 ART — Diagnóstico de "Grabar con la cámara"
+
+- **Síntoma (Cande):** la grabación en vivo no funciona.
+- **Pruebas:** desde el navegador del escritorio, POST real a `/cauce/api/leer-plano` con 4 cuadros → 200 en 7,9 s, 4 ambientes y descripción por cuadro (Gemini). `getUserMedia` dentro del navegador de Claude → `NotAllowedError`: la cámara está bloqueada siempre dentro de Claude (vista previa y panel del escritorio).
+- **Conclusión:** el circuito de IA funciona; hay que grabar desde Chrome o el celular abriendo andromedaweb.store/cauce/app.html (HTTPS, con permiso de cámara).
+- **Cambio:** mensajes de error específicos (dentro de Claude, permiso bloqueado, sin cámara). Sin cambios en la lógica de Franco.
+- **Observación:** la IA puede devolver ambientes superpuestos o coordenadas negativas; la app los normaliza pero la maqueta puede quedar con paredes cruzadas. Pendiente: validar superposiciones antes de construir.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

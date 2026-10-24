@@ -1540,7 +1540,15 @@ $("vcam").onclick = async () => {
   $("vres").hidden = false; vstatus("");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ vstatus("Este navegador no deja usar la cámara desde la página. Usá «Elegir video».", "err"); return; }
   try{ cam = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1280}}, audio: false}); }
-  catch(_){ vstatus("No pude abrir la cámara: hay que darle permiso a la página.", "err"); return; }
+  catch(e){
+    const enClaude = !!window.claude || window.top !== window;
+    vstatus(enClaude
+      ? "La cámara no se puede usar dentro de Claude. Abrí andromedaweb.store/cauce/app.html en Chrome o en el celular y grabá desde ahí."
+      : e && e.name === "NotAllowedError"
+        ? "La cámara está bloqueada para esta página. Tocá el candado de la barra de direcciones, permití la cámara y volvé a intentar."
+        : e && e.name === "NotFoundError" ? "No encontré ninguna cámara en este dispositivo. Usá «Elegir video»."
+        : "No pude abrir la cámara (" + (e && e.name || "error") + "). Probá «Elegir video».", "err");
+    return; }
   const v = $("vcamv"); v.srcObject = cam; await v.play().catch(() => {});
   for (let k = 0; k < 50 && !v.videoWidth; k++) await new Promise(r => setTimeout(r, 100));
   if (!v.videoWidth){ pararCamara(); vstatus("La cámara no mandó imagen. Probá de nuevo.", "err"); return; }
