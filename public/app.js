@@ -1131,17 +1131,25 @@ async function resumirMuestras(muestras, meta, capturar){
   grupos = grupos.filter(g => g.length).sort((a, b) => b.length - a.length).slice(0, 6).sort((a, b) => a[0].t - b[0].t);
   const elegidos = grupos.map(g => { const ok = g.filter(m => m.luz > 0.08 && m.luz < 0.95); return (ok.length ? ok : g).reduce((x, y) => y.nitidez > x.nitidez ? y : x); });
 
-  const claves = [];
-  for (const [j, m] of elegidos.entries()){
+  const nits = muestras.map(m => m.nitidez).sort((a, b) => a - b), mediana = nits[Math.floor(nits.length/2)];
+  // cuadros para el recorrido: el más nítido de cada tramo corto (hasta 24), más los cuadros clave
+  const paso = Math.max(1, Math.round(muestras.length / 24)), tramo = [];
+  for (let s = 0; s < muestras.length; s += paso){
+    const g = muestras.slice(s, s + paso), ok = g.filter(m => m.nitidez >= 0.4*mediana);
+    tramo.push((ok.length ? ok : g).reduce((x, y) => y.nitidez > x.nitidez ? y : x));
+  }
+  const usar = [...new Set([...tramo, ...elegidos])].sort((a, b) => a.t - b.t), urlDe = new Map();
+  for (const [j, m] of usar.entries()){
     let url = m.url;
     if (!url){ try{ url = await capturar(m); }catch(_){ continue; } }
-    claves.push({t: m.t, url, luz: m.luz, nitidez: m.nitidez});
-    $("vbar").style.width = Math.round(80 + (j + 1) / elegidos.length * 20) + "%";
+    urlDe.set(m, url);
+    $("vbar").style.width = Math.round(80 + (j + 1) / usar.length * 20) + "%";
   }
-  muestras.forEach(m => { if (!elegidos.includes(m)) delete m.url; });   // libera memoria de la cámara
-  const nits = muestras.map(m => m.nitidez).sort((a, b) => a - b), mediana = nits[Math.floor(nits.length/2)];
+  muestras.forEach(m => { delete m.url; });   // libera memoria de la cámara
+  const claves = elegidos.filter(m => urlDe.has(m)).map(m => ({t: m.t, url: urlDe.get(m), luz: m.luz, nitidez: m.nitidez}));
+  const recorrido = usar.filter(m => urlDe.has(m)).map(m => ({t: m.t, url: urlDe.get(m)}));
   VIDEO = {
-    nombre: meta.nombre, duracion: dur, ancho: meta.ancho, alto: meta.alto, muestras, tomas: tomas.length, claves,
+    nombre: meta.nombre, duracion: dur, ancho: meta.ancho, alto: meta.alto, muestras, tomas: tomas.length, claves, recorrido,
     luz: promedio(muestras.map(m => m.luz)), borrosos: muestras.filter(m => m.nitidez < 0.4*mediana).length / muestras.length,
     cambioMedio: media, segundos: (performance.now() - meta.t0) / 1000, ia: null
   };
@@ -1163,7 +1171,7 @@ $("vcam").onclick = async () => {
   $("vsub").textContent = "Grabación en vivo"; $("vlive").hidden = false;
   const vw = v.videoWidth, vh = v.videoHeight, w = 96, h = Math.max(8, Math.round(96 * vh / vw));
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const cx = cv.getContext("2d", {willReadFrequently: true});
-  const W = Math.min(480, vw), Hc = Math.round(W * vh / vw);
+  const W = Math.min(720, vw), Hc = Math.round(W * vh / vw);
   const big = document.createElement("canvas"); big.width = W; big.height = Hc; const bx = big.getContext("2d");
   const muestras = [], t0 = performance.now(); let tomasVivo = 1;
   const tick = () => {
@@ -1296,15 +1304,43 @@ $("vgo").onclick = async () => {
     let i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(c.ambiente || ""));
     if (i < 0 && c.ambiente) i = buscarAmbiente(c.ambiente);
     if (i < 0) i = previo;
-    previo = i;
-    await agregarFoto(i, c.url, "Video " + mmss(c.t));
+    c.i = previo = i;
+  }
+  // cada cuadro del recorrido va al ambiente del cuadro clave más cercano en el tiempo
+  secuencia = [];
+  for (const r of v.recorrido){
+    const c = v.claves.reduce((x, y) => Math.abs(y.t - r.t) < Math.abs(x.t - r.t) ? y : x);
+    if (await agregarFoto(c.i, r.url, "Video " + mmss(r.t))) secuencia.push([c.i, fotosDe(c.i).length - 1]);
   }
   renderPanel(); actualizarBotonFotos(); setHint();
   titulo.textContent = tituloViejo; $("busy").hidden = true; $("vgo").disabled = false;
   try{ history.replaceState(null, "", location.pathname); }catch(_){}
   if (matchMedia("(min-width: 821px)").matches) guia(true);
-  else stage.scrollIntoView({behavior: "smooth", block: "start"});
+  else { guia(false); stage.scrollIntoView({behavior: "smooth", block: "start"}); }
+  $("vtour").hidden = !secuencia.length;
+  recorrerVideo();
 };
+
+// Recorrido automático: entra a los cuadros del video en el orden en que se grabaron y camina de uno a otro.
+// Se frena apenas la persona toca la pantalla.
+let secuencia = [], tour = null;
+function frenarRecorrido(){ if (tour){ clearTimeout(tour); tour = null; } }
+function recorrerVideo(){
+  frenarRecorrido();
+  if (!secuencia.length) return;
+  cerrarFotos(); verFotos(secuencia[0][0], secuencia[0][1]);
+  let paso = 0;
+  const siguiente = () => {
+    if ($("fotos").hidden || ++paso >= secuencia.length){ tour = null; return; }
+    const [i, k] = secuencia[paso];
+    caminarA(i, k, 1);
+    tour = setTimeout(siguiente, 2600);
+  };
+  tour = setTimeout(siguiente, 2600);
+  if (!matchMedia("(min-width: 821px)").matches) stage.scrollIntoView({behavior: "smooth", block: "start"});
+}
+$("fotos").addEventListener("pointerdown", frenarRecorrido);
+$("vtour").onclick = recorrerVideo;
 $("vfile").addEventListener("change", e => analizarVideo(e.target.files[0]));
 const vdrop = $("vdrop");
 vdrop.addEventListener("dragover", e => { e.preventDefault(); vdrop.classList.add("over"); });
