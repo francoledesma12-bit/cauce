@@ -1,0 +1,111 @@
+{
+  "plan": {
+    "nombre": "Vivienda ficticia — plano de prueba",
+    "zona": "",
+    "ambientes": [
+      {
+        "nombre": "Estar / Comedor",
+        "tipo": "estar",
+        "x": 0,
+        "y": 0,
+        "ancho": 4,
+        "largo": 5
+      },
+      {
+        "nombre": "Cocina",
+        "tipo": "cocina",
+        "x": 4,
+        "y": 0,
+        "ancho": 2,
+        "largo": 3
+      },
+      {
+        "nombre": "Baño",
+        "tipo": "bano",
+        "x": 4,
+        "y": 3,
+        "ancho": 2,
+        "largo": 2
+      },
+      {
+        "nombre": "Dormitorio",
+        "tipo": "dormitorio",
+        "x": 0,
+        "y": 5,
+        "ancho": 6,
+        "largo": 3
+      }
+    ],
+    "aberturas": [],
+    "observaciones": [
+      "Coordenadas y dimensiones en metros, según las medidas escritas. Origen en la esquina superior izquierda; x aumenta hacia la derecha e y hacia abajo. Norte hacia arriba.",
+      "El esquema mide 6 × 8 m. Las medidas se indican como interiores; no se documenta el espesor de las paredes, por lo que los rectángulos se representan contiguos sin asignar espesores.",
+      "Estar / Comedor es un único ambiente integrado.",
+      "No hay aberturas dibujadas; el arreglo vacío no confirma su ausencia en una vivienda real.",
+      "No se documentan alturas, muebles ni ubicación de la propiedad."
+    ]
+  },
+  "walls": [
+    {
+      "axis": "h",
+      "line": 0,
+      "start": 0,
+      "end": 6
+    },
+    {
+      "axis": "h",
+      "line": 5,
+      "start": 0,
+      "end": 6
+    },
+    {
+      "axis": "v",
+      "line": 0,
+      "start": 0,
+      "end": 8
+    },
+    {
+      "axis": "v",
+      "line": 4,
+      "start": 0,
+      "end": 5
+    },
+    {
+      "axis": "h",
+      "line": 3,
+      "start": 4,
+      "end": 6
+    },
+    {
+      "axis": "v",
+      "line": 6,
+      "start": 0,
+      "end": 8
+    },
+    {
+      "axis": "h",
+      "line": 8,
+      "start": 0,
+      "end": 6
+    }
+  ],
+  "area": 48,
+  "run": {
+    "model": "gpt-6-astra",
+    "runner": "Codex CLI local con inicio de sesion ChatGPT",
+    "started_utc": "2026-10-24T16:13:57.8573013Z",
+    "elapsed_seconds": 13.96,
+    "cloud_vm": false,
+    "exit_code": 0
+  },
+  "validation": {
+    "rooms": 4,
+    "dimensions": "exact_match",
+    "overlap": false,
+    "missing_openings_invented": false
+  },
+  "assumptions": {
+    "wall_height_m": 2.6,
+    "wall_thickness_m": 0.12
+  }
+}

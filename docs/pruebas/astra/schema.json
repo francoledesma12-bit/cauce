@@ -1,0 +1,12 @@
+{
+  "type":"object",
+  "additionalProperties":false,
+  "required":["nombre","zona","ambientes","aberturas","observaciones"],
+  "properties":{
+    "nombre":{"type":"string"},
+    "zona":{"type":"string"},
+    "ambientes":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["nombre","tipo","x","y","ancho","largo"],"properties":{"nombre":{"type":"string"},"tipo":{"type":"string","enum":["estar","comedor","dormitorio","cocina","bano","lavadero","entrada","pasillo","balcon","patio","otro"]},"x":{"type":"number"},"y":{"type":"number"},"ancho":{"type":"number"},"largo":{"type":"number"}}}},
+    "aberturas":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["tipo","orientacion","x","y","ancho"],"properties":{"tipo":{"type":"string","enum":["puerta","paso","abierto","ventanal","ventana"]},"orientacion":{"type":"string","enum":["h","v"]},"x":{"type":"number"},"y":{"type":"number"},"ancho":{"type":"number"}}}},
+    "observaciones":{"type":"array","items":{"type":"string"}}
+  }
+}
