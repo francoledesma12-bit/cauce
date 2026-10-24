@@ -11,3 +11,8 @@ Modelos (KhronosGroup/glTF-Sample-Assets), texturas reducidas a 512 px para la w
 Texturas y panorama (repositorio de ejemplos de three.js, r128):
 - parquet.jpg / parquet-rugosidad.jpg — "hardwood2".
 - ciudad.hdr — "pedestrian_overpass_1k", Poly Haven (CC0).
+
+Fotos reales de interiores (assets/fotos/depto/), Unsplash, licencia Unsplash (uso comercial libre, sin atribución obligatoria):
+una misma vivienda fotografiada para un aviso. Fuentes: unsplash.com/photos/-raUwtFMIpo, Cu2xZLKgn10, 6GruB-1L9kE,
+TkprGwygO5Q, 2fJB9gwnA6U, tUFogT8Mn8U, 0jmXOqUhpTQ, 8w2sdG9eAVY, WbmX0pw_AuI, fN3dRwzOux0.
+En la demo se usan como fotos de ejemplo: no son fotos de las propiedades de Rosario mencionadas en los planos.

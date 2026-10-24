@@ -1119,7 +1119,7 @@ let currentRoom = -1;
 
 function setHint(){
   $("hint").textContent = mode === "maqueta"
-    ? "Arrastrá para girar · tocá un ambiente para entrar"
+    ? (Object.values(FOTOS).some(l => l.length) ? "Tocá un ambiente para ver sus fotos reales" : "Arrastrá para girar · tocá un ambiente para entrar")
     : "Arrastrá para mirar · tocá el piso para caminar · WASD en compu";
 }
 
@@ -1490,10 +1490,10 @@ function abrirAmbiente(i){
   if (fotosDe(i).length) verFotos(i, 0);
   else { cerrarFotos(); mode === "recorrido" ? irA(i) : setMode("recorrido", i); }
 }
-function agregarFoto(i, url, nombre){
+function agregarFoto(i, url, nombre, demo = false){
   return new Promise(ok => {
     const img = new Image();
-    img.onload = () => { (FOTOS[i] = FOTOS[i] || []).push({url, pano: img.naturalWidth / img.naturalHeight >= 1.9, nombre}); ok(true); };
+    img.onload = () => { (FOTOS[i] = FOTOS[i] || []).push({url, pano: img.naturalWidth / img.naturalHeight >= 1.9, nombre, demo}); ok(true); };
     img.onerror = () => ok(false);
     img.src = url;
   });
@@ -1504,9 +1504,9 @@ async function cargarFotosDemo(key){
     const man = await r.json();
     for (const [nombre, lista] of Object.entries(man)){
       const i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(nombre)); if (i < 0) continue;
-      for (const f of lista) await agregarFoto(i, `./assets/fotos/${key}/${f}`, f);
+      for (const f of lista) await agregarFoto(i, `./assets/fotos/${key}/${f}`, f, true);
     }
-    if (planKey === key){ renderPanel(); actualizarBotonFotos(); }
+    if (planKey === key){ renderPanel(); actualizarBotonFotos(); setHint(); }
   }catch(_){}
 }
 $("fotosIn").addEventListener("change", e => subirFotos([...e.target.files]));
@@ -1561,7 +1561,7 @@ function verFotos(i, k){
   $("labels").hidden = true; $("hint").hidden = true; $("title3d").hidden = true;
   document.querySelector(".tools").hidden = true;
   const a = plan.ambientes[i];
-  $("ftag").innerHTML = ""; $("ftag").append(document.createTextNode(a.nombre)); $("ftag").insertAdjacentHTML("beforeend", `<small>${fmt(a.ancho)} × ${fmt(a.largo)} m · ${fmt(a.ancho*a.largo)} m²${l.length ? " · " + (k+1) + "/" + l.length : ""}</small>`);
+  $("ftag").innerHTML = ""; $("ftag").append(document.createTextNode(a.nombre)); $("ftag").insertAdjacentHTML("beforeend", `<small>${fmt(a.ancho)} × ${fmt(a.largo)} m · ${fmt(a.ancho*a.largo)} m²${l.length ? " · " + (((k % l.length) + l.length) % l.length + 1) + "/" + l.length : ""}${l.length && l[((k % l.length) + l.length) % l.length].demo ? " · foto de ejemplo" : ""}</small>`);
   $("fempty").hidden = !!l.length; $("fprev").hidden = $("fnext").hidden = l.length < 2;
   if (!l.length){ $("fimg").hidden = true; $("fpano").hidden = true; $("fbg").style.backgroundImage = "none"; marcarChip(i); return; }
   fotoIdx = (k + l.length) % l.length;

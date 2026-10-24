@@ -100,6 +100,13 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Cómo cargar fotos de demo sin tocar código:** `public/assets/fotos/<plano>/fotos.json` con `{"Cocina": ["cocina-1.jpg"], "Estar": ["estar-360.jpg"]}` y las imágenes en esa carpeta (`<plano>` = montevideo, sarmiento o astra). Se cargan solas al abrir ese plano.
 - **Necesitamos:** fotos REALES (de una propiedad de Ruiz con permiso, o sacadas hoy con celular, idealmente 360). Sin fotos, el modo no aparece.
 
+## 24/10/2026, 14:15 ART — Fotos reales cargadas en la demo
+
+- **Qué:** 10 fotos reales de un mismo departamento (living, cocina, dormitorio, baño, pasillo y balcón), tomadas de Unsplash (licencia libre para uso comercial), optimizadas a 1440–1600 px (1,6 MB en total) en `public/assets/fotos/depto/`. Manifiestos por plano en `public/assets/fotos/{montevideo,sarmiento,astra}/fotos.json`.
+- **Honestidad en la demo:** la app las marca como "foto de ejemplo"; no son fotos de Montevideo 953 ni de otra propiedad de Ruiz. Créditos en `public/assets/CREDITOS.txt`.
+- **Prueba:** navegador simulado: carga de manifiestos, 3 fotos en cocina, navegación, etiqueta "foto de ejemplo", vuelta al 3D; sin errores.
+- **Siguiente paso ideal:** reemplazar por fotos reales de una propiedad de Ruiz (con permiso): solo hay que cambiar las imágenes y el fotos.json, sin tocar código.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

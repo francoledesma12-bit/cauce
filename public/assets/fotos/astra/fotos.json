@@ -1,0 +1,17 @@
+{
+ "Estar / Comedor": [
+  "../depto/living-1.jpg",
+  "../depto/living-2.jpg"
+ ],
+ "Cocina": [
+  "../depto/cocina-1.jpg",
+  "../depto/cocina-3.jpg"
+ ],
+ "Baño": [
+  "../depto/bano.jpg"
+ ],
+ "Dormitorio": [
+  "../depto/dormitorio-1.jpg",
+  "../depto/dormitorio-2.jpg"
+ ]
+}
