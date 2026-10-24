@@ -93,6 +93,13 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Pendientes explícitos:** proveedor de generación en VPS, cuenta/clave ElevenLabs, integración UX/voz en la aplicación, QR y persistencia por propiedad, propiedad real adicional y prueba en dispositivos reales.
 - **Estado:** prototipo y clip publicados; fuentes y plan documentados. No es cierre de toda la lista.
 
+## 24/10/2026, 14:00 ART — Decisión de Cande: fotos reales como experiencia principal
+
+- **Decisión:** el 3D no se ve fotorrealista en navegador (Cande: "sigo viendo un Sims"). Como hacen Idealista, Zillow y Rightmove, la experiencia principal pasan a ser **fotos reales por ambiente** (comunes o 360°) y el plano 3D queda como mapa de navegación. La guía con IA lleva a las fotos de cada ambiente.
+- **Estado:** publicado; flujo probado en navegador simulado (asignación por nombre de archivo, 360 detectada por proporción 2:1, navegación y vuelta al 3D).
+- **Cómo cargar fotos de demo sin tocar código:** `public/assets/fotos/<plano>/fotos.json` con `{"Cocina": ["cocina-1.jpg"], "Estar": ["estar-360.jpg"]}` y las imágenes en esa carpeta (`<plano>` = montevideo, sarmiento o astra). Se cargan solas al abrir ese plano.
+- **Necesitamos:** fotos REALES (de una propiedad de Ruiz con permiso, o sacadas hoy con celular, idealmente 360). Sin fotos, el modo no aparece.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

@@ -40,15 +40,30 @@
       <div class="rooms-head"><h2><span class="n">03</span>Ambientes</h2><span class="total" id="total"></span></div>
       <p class="help">Tocá un ambiente para recorrerlo.</p>
       <ul class="rooms" id="rooms"></ul>
+      <label class="fotodrop" id="fotodrop" for="fotosIn">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v11H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span>Agregar fotos reales<small>Comunes o 360°. Si el archivo se llama como el ambiente (cocina.jpg) se asigna solo.</small></span>
+      </label>
+      <input type="file" id="fotosIn" accept="image/jpeg,image/png,image/webp" multiple hidden>
     </section>
   </aside>
 
   <main class="stage g-open" id="stage">
     <canvas id="gl"></canvas>
     <div class="labels" id="labels"></div>
+    <div class="fotos" id="fotos" hidden>
+      <div class="bg" id="fbg"></div>
+      <img class="ph" id="fimg" alt="">
+      <canvas id="fpano" hidden></canvas>
+      <div class="fempty" id="fempty" hidden><div><b>Este ambiente todavía no tiene fotos</b>Agregalas desde el panel o mirá el recorrido 3D.</div></div>
+      <div class="fbar"><span class="tag" id="ftag"></span><button id="f3d" type="button">Ver en 3D</button></div>
+      <button class="fnav prev" id="fprev" type="button" aria-label="Foto anterior">‹</button>
+      <button class="fnav next" id="fnext" type="button" aria-label="Foto siguiente">›</button>
+    </div>
     <div class="modes" role="group" aria-label="Vista">
       <button id="mMaqueta" aria-pressed="true">Maqueta</button>
-      <button id="mRecorrido" aria-pressed="false">Recorrido</button>
+      <button id="mRecorrido" aria-pressed="false">Recorrido 3D</button>
+      <button id="mFotos" aria-pressed="false" hidden>Fotos reales</button>
     </div>
     <div class="tools">
       <div class="sunbox">

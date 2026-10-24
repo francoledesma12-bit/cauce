@@ -732,6 +732,7 @@ function maquetaView(animate = true){
 
 function setMode(m, roomIndex){
   mode = m;
+  if (typeof cerrarFotos === "function") cerrarFotos();
   document.getElementById("mMaqueta").setAttribute("aria-pressed", m === "maqueta");
   document.getElementById("mRecorrido").setAttribute("aria-pressed", m === "recorrido");
   document.getElementById("cut").hidden = m !== "maqueta";
@@ -821,7 +822,7 @@ function clickAt(e){
   ndc.set(((e.clientX - r.left)/r.width)*2 - 1, -((e.clientY - r.top)/r.height)*2 + 1);
   ray.setFromCamera(ndc, camera);
   const hit = ray.intersectObjects(floors)[0]; if (!hit) return;
-  if (mode === "maqueta"){ setMode("recorrido", hit.object.userData.room); return; }
+  if (mode === "maqueta"){ abrirAmbiente(hit.object.userData.room); return; }
   const to = new THREE.Vector3(hit.point.x, 1.5, hit.point.z), from = camera.position.clone();
   const d = from.distanceTo(to);
   tween(Math.min(1400, 300 + d*260), k => camera.position.lerpVectors(from, to, k));
@@ -865,7 +866,8 @@ function renderPanel(){
     b.innerHTML = `<span class="sw"></span><span class="rn"></span><span class="rm">${fmt(m2)} m²</span>`;
     b.querySelector(".sw").style.background = TIPOS[a.tipo].color;
     b.querySelector(".rn").textContent = a.nombre;
-    b.onclick = () => mode === "recorrido" ? irA(i) : setMode("recorrido", i);
+    if (fotosDe(i).length) b.querySelector(".rm").insertAdjacentHTML("afterbegin", `<span class="cam">${fotosDe(i).length} foto${fotosDe(i).length > 1 ? "s" : ""} ·</span>`);
+    b.onclick = () => abrirAmbiente(i);
     li.append(b); ul.append(li);
   });
   $("total").textContent = fmt(total) + " m² totales";
@@ -874,7 +876,7 @@ function renderPanel(){
   const chips = $("chips"); chips.innerHTML = "";
   plan.ambientes.forEach((a, i) => {
     const b = document.createElement("button"); b.textContent = a.nombre; b.dataset.i = i;
-    b.onclick = () => mode === "recorrido" ? irA(i) : setMode("recorrido", i);
+    b.onclick = () => abrirAmbiente(i);
     chips.append(b);
   });
 }
@@ -887,7 +889,7 @@ function renderLabels(){
     const d = document.createElement("div"); d.className = "lbl";
     d.innerHTML = `<span></span><small>${fmt(a.ancho*a.largo)} m²</small>`;
     d.querySelector("span").textContent = a.nombre;
-    d.onclick = () => setMode("recorrido", i);
+    d.onclick = () => abrirAmbiente(i);
     d.dataset.i = i; labels.append(d);
   });
 }
@@ -903,16 +905,19 @@ function placeLabels(){
   });
 }
 function updateChips(){
+  if (!$("fotos").hidden) return;
   const r = mode === "recorrido" ? roomAt(camera.position.x, camera.position.z) : -1;
   if (r === currentRoom) return; currentRoom = r;
   $("chips").childNodes.forEach(b => b.setAttribute("aria-current", +b.dataset.i === r));
 }
 
 function cargar(raw, key){
+  FOTOS = {}; planKey = key || null; cerrarFotos();
   plan = normalizar(raw);
   construir(plan);
   renderPanel();
   if (typeof iniciarGuia === "function" && document.getElementById("msgs")) setTimeout(iniciarGuia, 0);
+  if (key) cargarFotosDemo(key);
   document.querySelectorAll(".preset").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === key));
   mode = "recorrido"; // fuerza la transición de cámara
   maquetaView(false);
@@ -932,8 +937,8 @@ function renderPresets(){
   });
 }
 
-$("mMaqueta").onclick = () => mode !== "maqueta" && setMode("maqueta");
-$("mRecorrido").onclick = () => mode !== "recorrido" && setMode("recorrido");
+$("mMaqueta").onclick = () => { cerrarFotos(); mode !== "maqueta" && setMode("maqueta"); };
+$("mRecorrido").onclick = () => { cerrarFotos(); mode !== "recorrido" && setMode("recorrido"); };
 $("cut").onclick = () => {
   cutOn = !cutOn; cutTarget = cutOn ? 1.3 : 50;
   $("cut").textContent = cutOn ? "Ver paredes completas" : "Cortar paredes";
@@ -1180,7 +1185,7 @@ async function preguntar(q){
   }
   const extra = r.ir_a != null ? "→ Te llevo a " + plan.ambientes[r.ir_a].nombre : "";
   burbuja("ella", r.respuesta, extra); historial.push({rol:"ella", texto:r.respuesta});
-  if (r.ir_a != null) mode === "recorrido" ? irA(r.ir_a) : setMode("recorrido", r.ir_a);
+  if (r.ir_a != null) abrirAmbiente(r.ir_a);
   $("gSend").disabled = false;
 }
 function iniciarGuia(){
@@ -1206,6 +1211,120 @@ $("gClose").onclick = () => guia(false);
 $("gOpen").onclick = () => guia(true);
 if (matchMedia("(max-width: 820px)").matches) guia(false);
 
+
+/* ===================== Fotos reales por ambiente ===================== */
+// Las fotos son la experiencia; el plano 3D es el mapa para moverse entre ellas.
+let FOTOS = {}, planKey = null, fotoAmb = -1, fotoIdx = 0;
+const fotosDe = i => FOTOS[i] || [];
+function actualizarBotonFotos(){
+  const hay = Object.values(FOTOS).some(l => l.length);
+  $("mFotos").hidden = !hay;
+}
+function abrirAmbiente(i){
+  if (fotosDe(i).length) verFotos(i, 0);
+  else { cerrarFotos(); mode === "recorrido" ? irA(i) : setMode("recorrido", i); }
+}
+function agregarFoto(i, url, nombre){
+  return new Promise(ok => {
+    const img = new Image();
+    img.onload = () => { (FOTOS[i] = FOTOS[i] || []).push({url, pano: img.naturalWidth / img.naturalHeight >= 1.9, nombre}); ok(true); };
+    img.onerror = () => ok(false);
+    img.src = url;
+  });
+}
+async function cargarFotosDemo(key){
+  try{
+    const r = await fetch(`./assets/fotos/${key}/fotos.json`, {cache:"no-cache"}); if (!r.ok) return;
+    const man = await r.json();
+    for (const [nombre, lista] of Object.entries(man)){
+      const i = plan.ambientes.findIndex(a => norm(a.nombre) === norm(nombre)); if (i < 0) continue;
+      for (const f of lista) await agregarFoto(i, `./assets/fotos/${key}/${f}`, f);
+    }
+    if (planKey === key){ renderPanel(); actualizarBotonFotos(); }
+  }catch(_){}
+}
+$("fotosIn").addEventListener("change", e => subirFotos([...e.target.files]));
+const fdrop = $("fotodrop");
+fdrop.addEventListener("dragover", e => { e.preventDefault(); fdrop.classList.add("over"); });
+fdrop.addEventListener("dragleave", () => fdrop.classList.remove("over"));
+fdrop.addEventListener("drop", e => { e.preventDefault(); fdrop.classList.remove("over"); subirFotos([...e.dataTransfer.files]); });
+async function subirFotos(files){
+  files = files.filter(f => /^image\//.test(f.type)); if (!files.length) return;
+  const destino = fotoAmb >= 0 ? fotoAmb : (mode === "recorrido" ? roomAt(camera.position.x, camera.position.z) : -1);
+  let sinAsignar = 0, primera = -1;
+  for (const f of files){
+    let i = buscarAmbiente(f.name.replace(/\.[a-z]+$/i, "").replace(/[-_]+/g, " "));
+    if (i < 0) i = destino;
+    if (i < 0){ sinAsignar++; continue; }
+    if (await agregarFoto(i, URL.createObjectURL(f), f.name) && primera < 0) primera = i;
+  }
+  renderPanel(); actualizarBotonFotos();
+  status(sinAsignar ? `${sinAsignar} foto(s) sin ambiente: nombralas como el ambiente (ej. cocina.jpg) o abrí el ambiente antes de subirlas.` : "Fotos agregadas.", sinAsignar ? "err" : "ok");
+  if (primera >= 0) verFotos(primera, fotosDe(primera).length - 1);
+}
+
+// visor 360: esfera vista desde adentro, arrastrar para mirar, rueda para acercar
+let pano = null;
+function panoInit(){
+  if (pano) return pano;
+  const cv = $("fpano"), r = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+  r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.outputEncoding = THREE.sRGBEncoding;
+  const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(75, 1, 0.1, 100);
+  const mat = new THREE.MeshBasicMaterial(), sph = new THREE.Mesh(new THREE.SphereGeometry(50, 64, 32), mat);
+  sph.scale.x = -1; sc.add(sph);
+  pano = {r, sc, cam, mat, yaw:0, pitch:0, auto:true, tex:null};
+  let d = null;
+  cv.addEventListener("pointerdown", e => { d = {x:e.clientX, y:e.clientY, yaw:pano.yaw, pitch:pano.pitch}; pano.auto = false; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => { if (!d) return; pano.yaw = d.yaw + (e.clientX - d.x)*0.004; pano.pitch = Math.max(-1.3, Math.min(1.3, d.pitch + (e.clientY - d.y)*0.004)); });
+  cv.addEventListener("pointerup", () => d = null);
+  cv.addEventListener("wheel", e => { e.preventDefault(); cam.fov = Math.max(35, Math.min(95, cam.fov + e.deltaY*0.03)); cam.updateProjectionMatrix(); }, {passive:false});
+  return pano;
+}
+function panoFrame(dt){
+  if (!pano || $("fpano").hidden || $("fotos").hidden) return;
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (pano.w !== w || pano.h !== h){ pano.r.setSize(w, h, false); pano.cam.aspect = w / Math.max(1, h); pano.cam.updateProjectionMatrix(); pano.w = w; pano.h = h; }
+  if (pano.auto) pano.yaw += dt*0.05;
+  pano.cam.quaternion.setFromEuler(new THREE.Euler(pano.pitch, pano.yaw, 0, "YXZ"));
+  pano.r.render(pano.sc, pano.cam);
+}
+function verFotos(i, k){
+  const l = fotosDe(i); fotoAmb = i;
+  $("fotos").hidden = false;
+  ["mMaqueta","mRecorrido"].forEach(id => $(id).setAttribute("aria-pressed", "false")); $("mFotos").setAttribute("aria-pressed", "true");
+  $("labels").hidden = true; $("hint").hidden = true; $("title3d").hidden = true;
+  document.querySelector(".tools").hidden = true;
+  const a = plan.ambientes[i];
+  $("ftag").innerHTML = ""; $("ftag").append(document.createTextNode(a.nombre)); $("ftag").insertAdjacentHTML("beforeend", `<small>${fmt(a.ancho)} × ${fmt(a.largo)} m · ${fmt(a.ancho*a.largo)} m²${l.length ? " · " + (k+1) + "/" + l.length : ""}</small>`);
+  $("fempty").hidden = !!l.length; $("fprev").hidden = $("fnext").hidden = l.length < 2;
+  if (!l.length){ $("fimg").hidden = true; $("fpano").hidden = true; $("fbg").style.backgroundImage = "none"; marcarChip(i); return; }
+  fotoIdx = (k + l.length) % l.length;
+  const f = l[fotoIdx];
+  $("fbg").style.backgroundImage = `url("${f.url}")`;
+  if (f.pano){
+    const p = panoInit(); $("fimg").hidden = true; $("fpano").hidden = false;
+    new THREE.TextureLoader().load(f.url, t => { t.encoding = THREE.sRGBEncoding; if (p.tex) p.tex.dispose(); p.tex = t; p.mat.map = t; p.mat.needsUpdate = true; p.yaw = 0; p.pitch = 0; p.auto = true; p.w = 0; });
+  } else { $("fpano").hidden = true; const im = $("fimg"); im.hidden = false; im.src = f.url; im.alt = "Foto real de " + a.nombre; }
+  marcarChip(i);
+}
+function marcarChip(i){ $("chips").childNodes.forEach(b => b.setAttribute("aria-current", +b.dataset.i === i)); currentRoom = i; }
+function cerrarFotos(){
+  if (!document.getElementById("fotos") || $("fotos").hidden) return;
+  $("fotos").hidden = true; fotoAmb = -1; $("mFotos").setAttribute("aria-pressed", "false");
+  $("labels").hidden = false; $("hint").hidden = false; $("title3d").hidden = false; document.querySelector(".tools").hidden = false;
+  $("mMaqueta").setAttribute("aria-pressed", mode === "maqueta"); $("mRecorrido").setAttribute("aria-pressed", mode === "recorrido");
+  currentRoom = -2;
+}
+$("fprev").onclick = () => verFotos(fotoAmb, fotoIdx - 1);
+$("fnext").onclick = () => verFotos(fotoAmb, fotoIdx + 1);
+$("f3d").onclick = () => { const i = fotoAmb; cerrarFotos(); mode === "recorrido" ? irA(i) : setMode("recorrido", i); };
+$("mFotos").onclick = () => {
+  const con = Object.keys(FOTOS).map(Number).filter(i => fotosDe(i).length);
+  if (con.length) verFotos(con.includes(currentRoom) ? currentRoom : con[0], 0);
+};
+addEventListener("keydown", e => { if ($("fotos").hidden || e.target.closest("textarea,input")) return;
+  if (e.key === "ArrowRight") verFotos(fotoAmb, fotoIdx + 1); if (e.key === "ArrowLeft") verFotos(fotoAmb, fotoIdx - 1); if (e.key === "Escape") cerrarFotos(); });
+
 /* ===================== Loop ===================== */
 function resize(){
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -1224,7 +1343,8 @@ function frame(now){
   if (mode === "maqueta" && !tweens.length) controls.update();
   walk(dt);
   placeLabels(); updateChips();
-  renderer.render(scene, camera);
+  if ($("fotos").hidden) renderer.render(scene, camera);
+  panoFrame(dt);
   requestAnimationFrame(frame);
 }
 
