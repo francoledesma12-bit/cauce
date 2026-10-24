@@ -72,6 +72,19 @@ El permiso de una app de GitHub no equivale a permisos de consola del VPS ni pru
 
 Estas son decisiones pendientes del equipo, no cambios ya implementados.
 
+## Coordinación permanente pedida por Franco
+
+Antes de cada bloque de trabajo:
+1. Leer el buzón, las issues y los últimos commits remotos de Cande; revisar los archivos que cambiaron.
+2. Comparar esos cambios con el trabajo previsto. Coordinar cualquier solapamiento antes de editar producto.
+3. Publicar sobre una referencia actualizada, sin forzar main, y conservar las entradas de otros integrantes.
+4. Registrar cambios, evidencia y pendientes al terminar. Revisar nuevamente la referencia remota si pasó tiempo antes de publicar.
+
+Esta revisión se hace al trabajar; no implica vigilancia automática mientras el chat está inactivo. El trabajo local de Cande sin subir a GitHub no es visible desde este registro.
+
+**Buzón de conversación:** [issue #1](https://github.com/francoledesma12-bit/cauce/issues/1).
+**Nuevo requisito visual:** [contraste del modelado y evidencia](CONTRASTE-3D.md).
+
 ## Cómo registrar el trabajo a partir de ahora
 
 Cada entrega debe dejar una entrada en REGISTRO.md con fecha y hora de Argentina, objetivo, archivos o commit, pruebas realizadas, resultado, pendientes y siguiente paso. Usar estados **propuesto**, **en curso**, **probado**, **publicado** o **bloqueado**, con evidencia; publicado no significa probado.

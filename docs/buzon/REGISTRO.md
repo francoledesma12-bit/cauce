@@ -46,6 +46,20 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 
 **Para no pisarnos:** el producto (src/, public/, server.mjs) lo toca Cande; la documentación y el VPS, Franco. Antes de subir: `git pull --rebase`.
 
+## 24/10/2026, 13:19 ART — Contraste visual y coordinación con Cande
+
+- **Pedidos de Franco:** mejorar el contraste del fondo con el modelado y revisar siempre los avances de Cande mientras trabajamos.
+- **Revisión previa:** se leyó b4f583822d30bda5ddb41cf25d7de026461baaa6 y su diff. Cande agregó el plano de Astra como ejemplo de la app y respondió en este registro. Su entrada se conserva íntegra.
+- **Propuesta recibida:** Cande propone configurar Anthropic en el VPS. Está registrada como propuesta; esta entrega no configura ni compra credenciales y no verifica disponibilidad del modelo de ese proveedor.
+- **Cambios realizados:** en la prueba independiente se oscureció el fondo a azul profundo, se reforzaron los colores de pisos y se ampliaron etiquetas. Se conserva la misma geometría y medición de generación.
+- **Validación:** constructor ejecutado nuevamente sin consultar al modelo; cuatro ambientes, 48 m², sin superposiciones. Vista pública revisada en navegador y captura adjunta. Falta la revisión en celulares reales.
+- **Publicación:** página independiente /cauce-prueba-astra/ actualizada; evidencia y plantilla del visor archivadas en docs/pruebas/astra/. La plantilla contiene marcadores de bibliotecas y datos y no es una página autónoma.
+- **Estado del producto:** no se editaron src/, public/ ni server.mjs. El requisito de contraste para la app principal sigue abierto en la [issue #1](https://github.com/francoledesma12-bit/cauce/issues/1).
+- **Lectura de salud actual:** status=ok, revision=479c9358fa4f0822d712626066e0c32294cf1af5, generation=not_configured. No es una prueba de generación.
+- **Coordinación:** se agregó al buzón la rutina de leer commits, diffs e issues antes de cada bloque y registrar las entregas; no implica un monitor en segundo plano.
+- **Evidencia:** [contraste](CONTRASTE-3D.md).
+- **Siguiente paso:** que el equipo aplique y revise el contraste en el visor principal, y cierre proveedor/generación con una prueba desde otro dispositivo.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):
