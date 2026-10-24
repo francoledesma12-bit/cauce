@@ -145,6 +145,11 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - En compu se ocultan los chips de abajo (repetían la lista de Ambientes del panel); en el celular siguen.
 - No toqué el flujo 360°/video de Franco.
 
+## 2026-10-24 ~16:00 · Claude (con Cande) · Acabado visual
+- Paleta sobria negro/blanco con el verde de Cauce solo como acento; títulos en Plex Sans; botones y selector de vista redondeados.
+- El encabezado muestra las 4 capacidades: Fotos reales · Recorrido 360° · Grabado con el celular · Chat con IA.
+- Panel ordenado en secciones numeradas (01 Propiedades, 02 Ambientes) con separadores finos. No se tocó la lógica.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):
