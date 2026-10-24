@@ -108,7 +108,7 @@ async function leerPlano(req, res) {
     }
     content.push({ type: 'text', text: prompt + '\n\nRespondé solo con el JSON, sin texto adicional.' });
     let text;
-    try { text = await pedirIA(content, { modelo: model, maxTokens: 4000, timeout: 90000 }); }
+    try { text = await pedirIA(content, { modelo: model, maxTokens: 4000, timeout: 55000 }); }
     catch (e) { console.error('IA', e.message); return json(res, 502, { error: 'La IA no respondió. Probá de nuevo.' }); }
     const plano = parseJson(text);
     if (!plano || !Array.isArray(plano.ambientes)) return json(res, 502, { error: 'La IA respondió en un formato inválido. Probá de nuevo.' });
