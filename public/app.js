@@ -1447,6 +1447,7 @@ function guia(open){
 $("gClose").onclick = () => guia(false);
 $("gOpen").onclick = () => guia(true);
 if (matchMedia("(max-width: 820px)").matches) guia(false);
+try{ matchMedia("(max-width: 820px)").addEventListener("change", e => { if (e.matches) guia(false); }); }catch(_){}
 
 
 /* ===================== Fotos reales por ambiente ===================== */
@@ -1579,7 +1580,8 @@ function montar(t, f){
     p.caja.geometry.dispose(); p.caja.geometry = geometriaCaja(asp, f.caja || CAJA_DEF);
     p.vf = 2*Math.atan(Math.tan(HFOV/2)/asp);
   }
-  p.yaw = 0; p.pitch = 0; p.fovMul = 1; p.t = 0; p.z = 0; p.x = 0; p.auto = true; ajustarCamara();
+  p.yaw = 0; p.pitch = p.esPano ? -0.06 : 0; p.fovMul = 1; p.t = 0; p.z = 0; p.x = 0; p.auto = true; ajustarCamara();
+  $("fwalkBox").hidden = p.esPano;
 }
 let caminando = false;
 const anim = (dur, fn) => new Promise(res => { const t0 = performance.now(); const step = now => { const k = Math.min(1, (now - t0)/dur); fn(k); k < 1 ? requestAnimationFrame(step) : res(); }; requestAnimationFrame(step); });
@@ -1592,11 +1594,14 @@ async function caminarA(i, k = 0, dir = 0){
     const tex = await texturaPara(f);
     // avanzar dentro de la foto actual hacia la salida y fundir
     const z0 = p.z, y0 = p.yaw;
-    await anim(650, k2 => { const e = k2*k2; p.z = z0 + (PROF*0.7 - z0)*e; p.yaw = y0 + dir*0.18*e; p.mat.opacity = 1 - 0.9*e; });
+    await anim(650, k2 => { const e = k2*k2;
+      if (p.esPano){ p.fovMul = 1 - 0.45*e; ajustarCamara(); } else p.z = z0 + (PROF*0.7 - z0)*e;
+      p.yaw = y0 + dir*0.18*e; p.mat.opacity = 1 - 0.9*e; });
     verFotos(i, k, tex);
     // entrar a la siguiente desde atrás de la toma
-    p.z = -0.9; p.mat.opacity = 0.1;
-    await anim(750, k2 => { const e = 1 - Math.pow(1 - k2, 3); p.z = -0.9*(1 - e); p.mat.opacity = 0.1 + 0.9*e; });
+    p.z = -0.9; p.mat.opacity = 0.1; if (p.esPano){ p.fovMul = 0.7; ajustarCamara(); }
+    await anim(750, k2 => { const e = 1 - Math.pow(1 - k2, 3); p.z = -0.9*(1 - e); p.mat.opacity = 0.1 + 0.9*e;
+      if (p.esPano){ p.fovMul = 0.7 + 0.3*e; ajustarCamara(); } });
   }catch(_){ verFotos(i, k); }
   finally{ caminando = false; p.mat.opacity = 1; }
 }
@@ -1665,7 +1670,7 @@ function verFotos(i, k, texLista){
   $("labels").hidden = true; $("hint").hidden = true; $("title3d").hidden = true;
   document.querySelector(".tools").hidden = true;
   const a = plan.ambientes[i], n = l.length ? ((k % l.length) + l.length) % l.length : 0;
-  $("ftag").innerHTML = ""; $("ftag").append(document.createTextNode(a.nombre)); $("ftag").insertAdjacentHTML("beforeend", `<small>${fmt(a.ancho)} × ${fmt(a.largo)} m · ${fmt(a.ancho*a.largo)} m²${l.length ? " · " + (n + 1) + "/" + l.length : ""}${l.length && l[n].demo ? " · foto de ejemplo" : ""}</small>`);
+  $("ftag").innerHTML = ""; $("ftag").append(document.createTextNode(a.nombre)); $("ftag").insertAdjacentHTML("beforeend", `<small>${fmt(a.ancho)} × ${fmt(a.largo)} m · ${fmt(a.ancho*a.largo)} m²${l.length ? " · " + (n + 1) + "/" + l.length : ""}${l.length && l[n].pano ? " · 360°" : ""}${l.length && l[n].demo ? " · foto de ejemplo" : ""}</small>`);
   $("fempty").hidden = !!l.length; $("fprev").hidden = $("fnext").hidden = l.length < 2;
   minimapa(i); flechas(i); marcarChip(i);
   if (!l.length){ $("fimg").hidden = true; $("fpano").hidden = true; $("fbg").style.backgroundImage = "none"; return; }

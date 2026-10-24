@@ -16,3 +16,8 @@ Fotos reales de interiores (assets/fotos/depto/), Unsplash, licencia Unsplash (u
 una misma vivienda fotografiada para un aviso. Fuentes: unsplash.com/photos/-raUwtFMIpo, Cu2xZLKgn10, 6GruB-1L9kE,
 TkprGwygO5Q, 2fJB9gwnA6U, tUFogT8Mn8U, 0jmXOqUhpTQ, 8w2sdG9eAVY, WbmX0pw_AuI, fN3dRwzOux0.
 En la demo se usan como fotos de ejemplo: no son fotos de las propiedades de Rosario mencionadas en los planos.
+
+Fotos 360° reales de interiores (assets/fotos/tour/), Poly Haven, CC0 (dominio público), reducidas a 3072×1536:
+- living-360.jpg — "Cayley Interior"   - cocina-360.jpg — "Kiara Interior"
+- dormitorio-360.jpg — "Relax Inn Seaview Suite"   - bano-360.jpg — "Modern Bathroom"
+https://polyhaven.com/hdris (fotografías equirectangulares de lugares reales). En la demo son fotos de ejemplo.

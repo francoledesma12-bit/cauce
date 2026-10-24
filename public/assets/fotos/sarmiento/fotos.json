@@ -1,95 +1,22 @@
 {
- "Balcón": [
-  {
-   "f": "../depto/balcon.jpg",
-   "caja": [
-    0.38,
-    0.2,
-    0.66,
-    0.58
-   ]
-  }
- ],
  "Living comedor": [
   {
-   "f": "../depto/living-1.jpg",
-   "caja": [
-    0.4,
-    0.22,
-    0.62,
-    0.66
-   ]
-  },
+   "f": "../tour/living-360.jpg"
+  }
+ ],
+ "Balcón": [
   {
-   "f": "../depto/living-2.jpg",
-   "caja": [
-    0.18,
-    0.26,
-    0.6,
-    0.65
-   ]
+   "f": "../tour/living-360.jpg"
   }
  ],
  "Cocina": [
   {
-   "f": "../depto/cocina-1.jpg",
-   "caja": [
-    0.36,
-    0.24,
-    0.62,
-    0.6
-   ]
-  },
-  {
-   "f": "../depto/cocina-2.jpg",
-   "caja": [
-    0.48,
-    0.24,
-    0.74,
-    0.62
-   ]
-  },
-  {
-   "f": "../depto/cocina-3.jpg",
-   "caja": [
-    0.62,
-    0.25,
-    0.98,
-    0.65
-   ]
-  }
- ],
- "Pasillo": [
-  {
-   "f": "../depto/pasillo.jpg",
-   "caja": [
-    0.33,
-    0.27,
-    0.66,
-    0.6
-   ]
+   "f": "../tour/cocina-360.jpg"
   }
  ],
  "Dormitorio 1": [
   {
-   "f": "../depto/dormitorio-1.jpg",
-   "caja": [
-    0.12,
-    0.06,
-    0.63,
-    0.82
-   ]
-  }
- ],
- "Baño": [
-  {
-   "f": "../depto/bano.jpg",
-   "caja": [
-    0.1,
-    0.02,
-    0.82,
-    0.86
-   ]
+   "f": "../tour/dormitorio-360.jpg"
   }
  ],
  "Dormitorio 2": [
@@ -100,6 +27,22 @@
     0.1,
     0.78,
     0.8
+   ]
+  }
+ ],
+ "Baño": [
+  {
+   "f": "../tour/bano-360.jpg"
+  }
+ ],
+ "Pasillo": [
+  {
+   "f": "../depto/pasillo.jpg",
+   "caja": [
+    0.33,
+    0.27,
+    0.66,
+    0.6
    ]
   }
  ]

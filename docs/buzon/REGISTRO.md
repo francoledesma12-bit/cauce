@@ -123,6 +123,14 @@ Para la demo de hoy: **clave de API de Anthropic en el VPS** (`/etc/cauce`, vari
 - **Geometría marcada a mano** para las 10 fotos de ejemplo (`public/assets/fotos/depto/geometria.json`). Fotos subidas por el usuario usan una caja por defecto. Siguiente paso natural: que la IA estime la caja (o un mapa de profundidad) de cada foto.
 - **Pruebas:** geometría sin NaN, profundidad 0,84–4,2 m; flujo de fotos y compartir sin errores en navegador simulado. Falta verlo en navegador real.
 
+## 24/10/2026, 14:45 ART — Recorrido 360° con fotos reales (estilo Matterport/Kuula)
+
+- **Pedido de Cande:** fotos reales que se recorran como un tour 3D profesional.
+- **Qué:** 4 panoramas 360° reales de Poly Haven (CC0): living con balcón y vista ("Cayley Interior"), cocina-comedor ("Kiara Interior"), dormitorio ("Relax Inn Seaview Suite") y baño ("Modern Bathroom"), reducidos a 3072×1536 (1,9 MB en total) en `public/assets/fotos/tour/`. Asignados a los ambientes de los 3 planos de ejemplo.
+- **Experiencia:** mirar en todas las direcciones, acercar con la rueda, flechas hacia los ambientes conectados (desde las puertas del plano), transición de "caminar" (acercamiento + fundido) y minimapa. Etiquetas "360°" y "foto de ejemplo".
+- **Móvil:** en pantallas ≤820 px se oculta el panel del sol y la guía arranca cerrada (antes tapaban el visor; verificado con captura en el navegador del escritorio de Cande).
+- **Créditos:** `public/assets/CREDITOS.txt`.
+
 ## Plantilla para próximas entradas
 
 - Fecha y hora (ART):

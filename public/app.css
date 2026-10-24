@@ -222,7 +222,7 @@ main.stage{position:relative;background:var(--stage);min-width:0;min-height:0;ov
   aside.panel{grid-row:3;border-right:0;border-top:1px solid var(--line);padding-right:max(16px,env(safe-area-inset-right,0px))}
   .tag{display:none}
   .hint{bottom:58px;font-size:12px}
-  .sunbox{width:200px;padding:7px 9px}
+  .sunbox{display:none}
   .guide{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;bottom:10px;max-height:72%;min-height:0}
   .stage.g-open .chips,.stage.g-open .hint,.stage.g-open .title3d{display:none}
   .gfab{bottom:52px}

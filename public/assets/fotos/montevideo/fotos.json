@@ -1,4 +1,29 @@
 {
+ "Estar": [
+  {
+   "f": "../tour/living-360.jpg"
+  }
+ ],
+ "Cocina": [
+  {
+   "f": "../tour/cocina-360.jpg"
+  }
+ ],
+ "Dormir": [
+  {
+   "f": "../tour/dormitorio-360.jpg"
+  }
+ ],
+ "Baño": [
+  {
+   "f": "../tour/bano-360.jpg"
+  }
+ ],
+ "Balcón": [
+  {
+   "f": "../tour/living-360.jpg"
+  }
+ ],
  "Entrada": [
   {
    "f": "../depto/pasillo.jpg",
@@ -7,97 +32,6 @@
     0.27,
     0.66,
     0.6
-   ]
-  }
- ],
- "Baño": [
-  {
-   "f": "../depto/bano.jpg",
-   "caja": [
-    0.1,
-    0.02,
-    0.82,
-    0.86
-   ]
-  }
- ],
- "Cocina": [
-  {
-   "f": "../depto/cocina-1.jpg",
-   "caja": [
-    0.36,
-    0.24,
-    0.62,
-    0.6
-   ]
-  },
-  {
-   "f": "../depto/cocina-2.jpg",
-   "caja": [
-    0.48,
-    0.24,
-    0.74,
-    0.62
-   ]
-  },
-  {
-   "f": "../depto/cocina-3.jpg",
-   "caja": [
-    0.62,
-    0.25,
-    0.98,
-    0.65
-   ]
-  }
- ],
- "Estar": [
-  {
-   "f": "../depto/living-1.jpg",
-   "caja": [
-    0.4,
-    0.22,
-    0.62,
-    0.66
-   ]
-  },
-  {
-   "f": "../depto/living-2.jpg",
-   "caja": [
-    0.18,
-    0.26,
-    0.6,
-    0.65
-   ]
-  }
- ],
- "Dormir": [
-  {
-   "f": "../depto/dormitorio-1.jpg",
-   "caja": [
-    0.12,
-    0.06,
-    0.63,
-    0.82
-   ]
-  },
-  {
-   "f": "../depto/dormitorio-2.jpg",
-   "caja": [
-    0.25,
-    0.1,
-    0.78,
-    0.8
-   ]
-  }
- ],
- "Balcón": [
-  {
-   "f": "../depto/balcon.jpg",
-   "caja": [
-    0.38,
-    0.2,
-    0.66,
-    0.58
    ]
   }
  ]
