@@ -1,0 +1,17 @@
+--- ficha.js (servidor)
++++ ficha.js (corregido)
+@@ function chips()
+-    // `active` es la prenda abierta: variable global de app.js (no cuelga de window).
+-    const variants = ((typeof active !== 'undefined' && active) || {}).purchaseVariants || [];
+-    const stockOf = id => (variants.find(v => v.id === id) || {}).stock;
+-
++    // 30/10/2026, pedido de Marta: las clientas no ven cuántas unidades quedan
++    // (antes decía «Queda 1 en este color.»). Los colores sin stock siguen deshabilitados.
+     function pick(value) {
+       select.value = value;
+       select.dispatchEvent(new Event('change'));
+       group.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.value === value)));
+-      const s = stockOf(value);
+-      note.textContent = s === 1 ? 'Queda 1 en este color.' : '';
++      note.textContent = '';
+     }

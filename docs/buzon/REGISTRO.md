@@ -179,3 +179,10 @@ Franco pidió el flujo completo de Tecnoteca y propuso alquilar RunPod. Se prese
 ## 24/10/2026 — Tecnoteca como sección adicional de Habita 3D
 
 Pedido de Franco: mostrar Tecnoteca en grande sin pisar el trabajo de Candela. Se conserva la portada Habita 3D y su demo; se agrega sección con visor embebido y apertura amplia en /cauce-360-hackaton/. Tres panoramas experimentales generados con proyección CUDA en NVIDIA L4 desde IMG_6732.MOV. Cobertura parcial y uniones visibles; NO es un modelo 3D métrico. COLMAP no logró alineación suficiente para Splatfacto (3/200; recuperación máxima 13). Archivos públicos de la muestra en /cauce-media/360/. No se modifican app.html, app.js, servidor, planes ni otros recorridos.
+
+## 30/10/2026 ~01:40 · Claude (con Cande) · Taj Mahal: ocultar stock y talles por prenda
+- Pedidos de Marta. Todo en docs/buzon/taj-mahal/2026-10-30-stock-y-talles/ (LEEME.md con el detalle).
+- 1) Las clientas no deben ver cuántas unidades quedan: ficha.js corregido (saca «Queda 1 en este color»; ficha.diff muestra el cambio). Para Franco: reemplazar ficha.js en tajmahal.net.ar.
+- 2) Talles por prenda, en letras y número opcional: talles.js nuevo (ficha + tarjetas + mensaje de WhatsApp), probado en navegador simulado. Para Franco: campo de talle en el panel de Marta, guardarlo como `talles` en cada prenda y mandarlo a Tiendanube como segunda propiedad de la variante (si no, el talle se pierde al pagar).
+- Límites: no se tocó el servidor de Taj Mahal (el código no está en GitHub). Sin probar sobre la tienda real.
+- Pedido: subir el código de Taj Mahal a GitHub y sumar a candepilar como colaboradora.
