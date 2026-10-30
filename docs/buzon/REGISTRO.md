@@ -186,3 +186,8 @@ Pedido de Franco: mostrar Tecnoteca en grande sin pisar el trabajo de Candela. S
 - 2) Talles por prenda, en letras y número opcional: talles.js nuevo (ficha + tarjetas + mensaje de WhatsApp), probado en navegador simulado. Para Franco: campo de talle en el panel de Marta, guardarlo como `talles` en cada prenda y mandarlo a Tiendanube como segunda propiedad de la variante (si no, el talle se pierde al pagar).
 - Límites: no se tocó el servidor de Taj Mahal (el código no está en GitHub). Sin probar sobre la tienda real.
 - Pedido: subir el código de Taj Mahal a GitHub y sumar a candepilar como colaboradora.
+
+
+## 30/10/2026 · Luz · entrega Taj Mahal
+
+Talles en panel/web, cantidades ocultas al público y auditoría operativa. [Entrega, pruebas y cómo acceder al informe privado](taj-mahal/2026-10-30-despliegue-auditoria.md). No se realizó compra real; pendientes y límites documentados.
